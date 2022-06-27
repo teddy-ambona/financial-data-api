@@ -1,0 +1,8 @@
+extends: default
+
+rules:
+  # The GitHub editor is 127 chars wide
+  line-length:
+    max: 127
+    level: error
+  new-lines: disable
