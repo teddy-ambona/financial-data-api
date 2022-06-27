@@ -1,4 +1,4 @@
-.PHONY: build integration-tests
+.PHONY: build integration-tests run-app flake8 pydocstyle yamllint pip-compile
 
 build:
 	docker build -t flask-app .
@@ -18,3 +18,6 @@ pydocstyle:
 
 yamllint:
 	yamllint .
+
+pip-compile:
+	docker run --rm -v ${PWD}:/foo -w="/foo" flask-app bash -c "pip-compile"

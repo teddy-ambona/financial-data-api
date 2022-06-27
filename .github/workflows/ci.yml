@@ -70,6 +70,8 @@ jobs:
           make pydocstyle
 
   build:
+    # Build Docker image and upload it to the pipeline artifacts
+    # The image will be re-used in the downstream jobs
     needs: [flake8, pydocstyle, yamllint]
     runs-on: ubuntu-latest
     steps:
