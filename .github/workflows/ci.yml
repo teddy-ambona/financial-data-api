@@ -114,6 +114,9 @@ jobs:
           docker load --input /tmp/flask-app.tar
           docker image ls -a
 
+      - name: checkout repo
+        uses: actions/checkout@v2
+
       - name: Run integration tests
         run: |
           make integration-tests
