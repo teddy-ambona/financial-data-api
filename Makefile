@@ -1,13 +1,16 @@
 .PHONY: build integration-tests run-app flake8 pydocstyle yamllint pip-compile
 
+ENV = test
+DRUN = docker run --rm
+
 build:
 	docker build -t flask-app .
 
 integration-tests:
-	docker run --rm flask-app bash -c "python -m unittest discover -s test/integration/"
+	$(DRUN) -e ENVIRONMENT=${ENV} flask-app bash -c "python -m unittest discover -s test/integration/"
 
 run-app:
-	docker run --rm -p 5000:5000 flask-app bash -c "python -m src.app"
+	$(DRUN) -p 5000:5000 flask-app bash -c "python -m src.app"
 
 flake8:
 	# The GitHub editor is 127 chars wide
@@ -20,4 +23,4 @@ yamllint:
 	yamllint .
 
 pip-compile:
-	docker run --rm -v ${PWD}:/foo -w="/foo" flask-app bash -c "pip-compile"
+	$(DRUN) -v ${PWD}:/foo -w="/foo" flask-app bash -c "pip-compile"

@@ -13,5 +13,3 @@ RUN pip install -r requirements.txt
 COPY config ./config/
 COPY src ./src/
 COPY test ./test/
-
-ENV ENVIRONMENT=test

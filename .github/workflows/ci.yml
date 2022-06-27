@@ -23,7 +23,7 @@ jobs:
 
       - name: Lint with yamllint
         run: |
-          make yamllint .
+          make yamllint
 
   flake8:
     runs-on: ubuntu-latest
