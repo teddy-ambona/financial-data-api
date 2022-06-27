@@ -1,4 +1,4 @@
-.PHONY: build integration-tests run-app flake8 pydocstyle yamllint pip-compile
+.PHONY: integration-tests
 
 build:
 	docker build -t flask-app .
