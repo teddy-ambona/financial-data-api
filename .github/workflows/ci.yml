@@ -103,7 +103,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Run Trivy vulnerability scanner
+      - name: Run Trivy misconfiguration scanner
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: config
@@ -189,4 +189,4 @@ jobs:
 
       - name: Run integration tests
         run: |
-          make integration-tests
+          make IMAGE_TAG=${IMAGE_TAG} integration-tests
