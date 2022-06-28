@@ -1,13 +1,14 @@
-.PHONY: build integration-tests run-app flake8 pydocstyle yamllint pip-compile
+.PHONY: build integration-tests run-app flake8 pydocstyle yamllint pip-compile safety
 
 ENV = test
 DRUN = docker run --rm
+IMAGE_TAG = latest
 
 build:
 	docker build -t flask-app .
 
 integration-tests:
-	$(DRUN) -e ENVIRONMENT=${ENV} flask-app bash -c "python -m unittest discover -s test/integration/"
+	$(DRUN) -e ENVIRONMENT=${ENV} flask-app:${IMAGE_TAG} bash -c "python -m unittest discover -s test/integration/"
 
 run-app:
 	$(DRUN) -p 5000:5000 flask-app bash -c "python -m src.app"
@@ -24,3 +25,6 @@ yamllint:
 
 pip-compile:
 	$(DRUN) -v ${PWD}:/foo -w="/foo" flask-app bash -c "pip-compile"
+
+safety:
+	$(DRUN) flask-app bash -c "pip install safety && safety check"
