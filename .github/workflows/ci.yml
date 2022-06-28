@@ -115,7 +115,7 @@ jobs:
   build:
     # Build Docker image and upload it to the pipeline artifacts.
     # The image will be re-used in the downstream jobs
-    needs: [flake8, pydocstyle, yamllint, safety]
+    needs: [flake8, pydocstyle, yamllint, safety, image-misconfiguration]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -167,7 +167,7 @@ jobs:
           severity: CRITICAL,HIGH
 
   integration-tests:
-    needs: [build]
+    needs: [image-vulnerabilities]
     runs-on: ubuntu-latest
     steps:
       - name: Set up Docker Buildx
