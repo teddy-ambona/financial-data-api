@@ -72,10 +72,50 @@ jobs:
         run: |
           make pydocstyle
 
+  safety:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install safety
+        run: |
+          python -m pip install --upgrade pip
+          pip install safety
+
+      - name: Check for python vulnerablities
+        run: |
+          safety check
+
+  image-misconfiguration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: config
+          format: table
+          exit-code: 1
+          vuln-type: security-check
+          severity: CRITICAL,HIGH
+
   build:
     # Build Docker image and upload it to the pipeline artifacts.
     # The image will be re-used in the downstream jobs
-    needs: [flake8, pydocstyle, yamllint]
+    needs: [flake8, pydocstyle, yamllint, safety]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -98,7 +138,7 @@ jobs:
           name: flask-app
           path: /tmp/flask-app.tar
 
-  vulnerabilities:
+  image-vulnerabilities:
     needs: [build]
     runs-on: ubuntu-latest
     steps:
@@ -127,7 +167,7 @@ jobs:
           severity: CRITICAL,HIGH
 
   integration-tests:
-    needs: [vulnerabilities]
+    needs: [build]
     runs-on: ubuntu-latest
     steps:
       - name: Set up Docker Buildx

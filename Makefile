@@ -1,4 +1,4 @@
-.PHONY: build integration-tests run-app flake8 pydocstyle yamllint pip-compile
+.PHONY: build integration-tests run-app flake8 pydocstyle yamllint pip-compile safety
 
 ENV = test
 DRUN = docker run --rm
@@ -24,3 +24,6 @@ yamllint:
 
 pip-compile:
 	$(DRUN) -v ${PWD}:/foo -w="/foo" flask-app bash -c "pip-compile"
+
+safety:
+	$(DRUN) flask-app bash -c "pip install safety && safety check"
