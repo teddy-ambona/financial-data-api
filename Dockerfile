@@ -14,7 +14,7 @@ RUN pip install -r requirements.txt
 
 COPY config ./config/
 COPY src ./src/
-COPY test ./test/
+COPY tests ./tests/
 
 # Using non-root user to reduce vulnerabilities
 USER app
