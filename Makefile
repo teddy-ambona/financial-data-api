@@ -1,8 +1,8 @@
 .PHONY: build integration-tests run-app flake8 pydocstyle yamllint pip-compile safety
 
 ENV = test
-DRUN = docker run --rm
 IMAGE_TAG = latest
+DRUN = docker run --rm
 DBASH = $(DRUN) -u root -v ${PWD}:/foo -w="/foo" python bash -c 
 
 build:
