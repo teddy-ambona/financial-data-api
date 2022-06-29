@@ -8,94 +8,35 @@ env:
 jobs:
   yamllint:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.8]
-
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install yamllint
-        run: |
-          python -m pip install --upgrade pip
-          pip install yamllint
-
       - name: Lint with yamllint
         run: |
           make yamllint
 
   flake8:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.8]
-
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install flake8
-        run: |
-          python -m pip install --upgrade pip
-          pip install flake8
-
       - name: Lint with flake8
         run: |
           make flake8
 
   pydocstyle:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.8]
-
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install pydocstyle
-        run: |
-          python -m pip install --upgrade pip
-          pip install pydocstyle
-
       - name: Lint with pydocstyle
         run: |
           make pydocstyle
 
   safety:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.8]
-
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Install safety
-        run: |
-          python -m pip install --upgrade pip
-          pip install safety
-
       - name: Check for python vulnerablities
         run: |
-          safety check
+          make safety
 
   image-misconfiguration:
     runs-on: ubuntu-latest
