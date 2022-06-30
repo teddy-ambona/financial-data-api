@@ -16,8 +16,6 @@ This repo is a template for dockerized flask applications(REST API). You will fi
 - [Docker](https://docs.docker.com/get-docker/)
 - [Docker Compose CLI plugin](https://docs.docker.com/compose/install/compose-plugin/)
 - If running on windows: [Docker remote containers on WSL 2](https://docs.microsoft.com/en-us/windows/wsl/tutorials/wsl-containers)
-- Database passwords should be stored under ~/.pgpass.
-  For running the tests you will need to add this line to the file: `localhost:5432:*:postgres:postgres`
 
 > The API doesn't require python installed on your machine.
 
@@ -77,9 +75,6 @@ curl -I http://127.0.0.1:5000/_healthcheck
 ├── README.md
 ├── requirements.in
 ├── requirements.txt
-
-
-
 ```
 
 # CICD overview
