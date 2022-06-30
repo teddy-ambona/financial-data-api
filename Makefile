@@ -17,6 +17,7 @@ down:
 
 setup-db:
 	docker-compose -f docker-compose.yaml up -d postgres-db
+	sleep 3  # Wait for DB to be up and running
 
 integration-tests:
 	$(DRUN) -e ENVIRONMENT=${ENV} --entrypoint="" --network host flask-app:${IMAGE_TAG} bash -c \
