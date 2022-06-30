@@ -42,14 +42,17 @@ curl -I http://127.0.0.1:5000/_healthcheck
 │   ├── workflow
 │   │   └── cicd.yaml
 ├── config
-│   ├── development
-│   │   └── config.yaml
-│   ├── local
-│   │   └── config.yaml
-│   ├── production
-│   │   └── config.yaml
-│   └── test
-│       └── config.yaml
+│   ├── .pgpass
+│   ├── .yamllint
+│   └── api_settings
+│       ├── development
+│       │   └── config.yaml
+│       ├── local
+│       │   └── config.yaml
+│       ├── production
+│       │   └── config.yaml
+│       └── test
+│           └── config.yaml
 ├── docs
 │   └── img
 │       └── CICD.png
@@ -68,7 +71,6 @@ curl -I http://127.0.0.1:5000/_healthcheck
 │       │   └── stocks_ohlcv.csv
 │       └── test_stocks.py
 ├── .gitignore
-├── .yamllint
 ├── docker-compose.yaml
 ├── Dockerfile
 ├── Makefile

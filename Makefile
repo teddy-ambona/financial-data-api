@@ -43,7 +43,7 @@ yamllint:
 	$(DBASH) \
 	"pip install -U pip && \
 	pip install yamllint && \
-	yamllint ."
+	yamllint -c config/.yamllint ."
 
 pip-compile:
 	$(DBASH) \
