@@ -130,4 +130,5 @@ jobs:
 
       - name: Run integration tests
         run: |
+          make setup-db
           make IMAGE_TAG=${IMAGE_TAG} integration-tests

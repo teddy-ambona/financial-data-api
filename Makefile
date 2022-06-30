@@ -1,4 +1,4 @@
-.PHONY: build integration-tests run-app flake8 pydocstyle yamllint pip-compile safety
+.PHONY: build integration-tests run-app flake8 pydocstyle yamllint pip-compile safety up down tests
 
 ENV = test
 IMAGE_TAG = latest
@@ -8,11 +8,23 @@ DBASH = $(DRUN) -u root -v ${PWD}:/foo -w="/foo" python bash -c
 build:
 	docker build -t flask-app .
 
-integration-tests:
-	$(DRUN) -e ENVIRONMENT=${ENV} flask-app:${IMAGE_TAG} bash -c "python -m unittest discover -s tests/integration/"
+up:
+	export IMAGE_TAG=${IMAGE_TAG} && \
+	docker-compose -f docker-compose.yaml up
 
-run-app:
-	$(DRUN) -p 5000:5000 flask-app bash -c "python -m src.app"
+down:
+	docker-compose down
+
+setup-db:
+	docker-compose -f docker-compose.yaml up -d postgres-db
+
+integration-tests:
+	$(DRUN) -e ENVIRONMENT=${ENV} --entrypoint="" --network host flask-app:${IMAGE_TAG} bash -c \
+	"python -m unittest discover -s tests/integration/"
+
+tests:
+	make setup-db
+	make integration-tests
 
 flake8:
 	# The GitHub editor is 127 chars wide

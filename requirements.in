@@ -1,4 +1,5 @@
-flask>2.1
+flask-sqlalchemy
 pandas>1.4
+psycopg2-binary
 pyyaml
-flask_sqlalchemy
+schema

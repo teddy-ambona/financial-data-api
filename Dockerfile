@@ -18,3 +18,5 @@ COPY tests ./tests/
 
 # Using non-root user to reduce vulnerabilities
 USER app
+
+ENTRYPOINT ["python", "-m", "src.app"]
