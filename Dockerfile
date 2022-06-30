@@ -3,7 +3,7 @@ FROM python:3.8.13
 RUN groupadd -r user && useradd -r -g user app
 
 # Upgrade packages to fix vulnerabilities found with Trivy
-RUN apt-get update && apt-get install \
+RUN apt-get update -y && apt-get install -y \
     openssl \
     libssl-dev \
     libssl1.1
