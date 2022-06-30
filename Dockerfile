@@ -2,7 +2,16 @@ FROM python:3.8.13
 
 RUN groupadd -r user && useradd -r -g user app
 
+# Upgrade packages to fix vulnerabilities found with Trivy
+RUN apt-get update -y && apt-get install -y \
+    openssl \
+    libssl-dev \
+    libssl1.1
+
 RUN pip install pip -U && pip install pip-tools
+
+COPY config/.pgpass /home/app/.pgpass
+RUN chown app /home/app/.pgpass && chmod 0600 /home/app/.pgpass
 
 RUN mkdir /app && chown -R app /app
 
@@ -12,9 +21,11 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install -r requirements.txt
 
-COPY config ./config/
+COPY config/api_settings ./settings
 COPY src ./src/
 COPY tests ./tests/
 
 # Using non-root user to reduce vulnerabilities
 USER app
+
+ENTRYPOINT ["python", "-m", "src.app"]

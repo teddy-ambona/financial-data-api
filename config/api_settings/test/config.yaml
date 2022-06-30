@@ -1,0 +1,9 @@
+---
+APP:
+  DEBUG: true
+
+DB:
+  DB_NAME: postgres
+  DB_USERNAME: postgres
+  DB_PORT: 5432
+  DB_HOST: localhost

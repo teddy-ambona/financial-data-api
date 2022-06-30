@@ -1,3 +1,4 @@
+---
 extends: default
 
 rules:
@@ -6,3 +7,6 @@ rules:
     max: 127
     level: error
   new-lines: disable
+
+  # Jobs "need" are expected to contain non-boolean values
+  truthy: disable
