@@ -4,6 +4,7 @@ on: [push]
 
 env:
   IMAGE_VERSION: 0.1.0
+  DOCKER_REPOSITORY: tambona29/financial-data-api
 
 jobs:
   yamllint:
@@ -69,6 +70,7 @@ jobs:
             SUFFIX="-${BRANCH_NAME}.dev.${GITHUB_SHA}"
           fi
           echo "::set-output name=IMAGE_TAG::${IMAGE_VERSION}${SUFFIX}"
+          echo "::set-output name=IMAGE_FULL_TAG::${DOCKER_REPOSITORY}:${IMAGE_VERSION}${SUFFIX}"
 
       - name: Checkout
         uses: actions/checkout@v2
@@ -88,7 +90,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          tags: ${{ steps.step1.outputs.IMAGE_TAG }}
+          tags: ${{ steps.step1.outputs.IMAGE_FULL_TAG }}
           outputs: type=docker,dest=/tmp/flask-app.tar
 
       - name: Upload artifact
@@ -98,6 +100,7 @@ jobs:
           path: /tmp/flask-app.tar
     outputs:
       IMAGE_TAG: ${{ steps.step1.outputs.IMAGE_TAG }}
+      IMAGE_FULL_TAG: ${{ steps.step1.outputs.IMAGE_FULL_TAG }}
 
   image-vulnerabilities:
     needs: [build]
@@ -117,7 +120,7 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: flask-app:${{ env.IMAGE_TAG }}
+          image-ref: ${{ needs.build.outputs.IMAGE_FULL_TAG }}
           format: table
           exit-code: 1
           ignore-unfixed: true
@@ -125,8 +128,10 @@ jobs:
           severity: CRITICAL,HIGH
 
   integration-tests:
-    needs: [image-vulnerabilities]
+    needs: [build, image-vulnerabilities]
     runs-on: ubuntu-latest
+    env:
+      IMAGE_FULL_TAG: ${{ needs.build.outputs.IMAGE_FULL_TAG }}
     steps:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
@@ -148,7 +153,7 @@ jobs:
       - name: Run integration tests
         run: |
           make setup-db
-          make IMAGE_TAG=${IMAGE_TAG} integration-tests
+          make IMAGE_TAG=${IMAGE_FULL_TAG} integration-tests
 
   push_to_registry:
     name: Push Docker image to Docker Hub
