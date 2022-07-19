@@ -187,4 +187,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ needs.build.outputs.IMAGE_TAG }}
+          tags: ${{ needs.build.outputs.IMAGE_FULL_TAG }}
