@@ -1,7 +1,7 @@
 .PHONY: build integration-tests run-app flake8 pydocstyle yamllint pip-compile safety up down tests
 
 ENV = test
-IMAGE_TAG = latest
+IMAGE_TAG = flask-app:latest
 DRUN = docker run --rm
 DBASH = $(DRUN) -u root -v ${PWD}:/foo -w="/foo" python bash -c 
 
@@ -20,7 +20,7 @@ setup-db:
 	sleep 3  # Wait for DB to be up and running
 
 integration-tests:
-	$(DRUN) -e ENVIRONMENT=${ENV} --entrypoint="" --network host flask-app:${IMAGE_TAG} bash -c \
+	$(DRUN) -e ENVIRONMENT=${ENV} --entrypoint="" --network host ${IMAGE_TAG} bash -c \
 	"python -m unittest discover -s tests/integration/"
 
 tests:
