@@ -12,6 +12,9 @@ This repo is a template for dockerized flask applications(REST API). This simpli
 - Flask-SQLAlchemy implementation
 - Dependency injection
 
+<img src="./docs/img/architecture.png" width="700"/>
+<br></br>
+
 ## Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/)
