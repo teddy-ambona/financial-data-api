@@ -1,4 +1,6 @@
-# financial-data-api &middot; ![build](https://img.shields.io/github/workflow/status/teddy-ambona/financial-data-api/Pipeline)
+# financial-data-api &middot; ![ci](https://github.com/teddy-ambona/financial-data-api/actions/workflows/ci.yml/badge.svg)
+
+
 
 This repo is a template for dockerized flask applications(REST API). This simplified API exposes GET endpoints that allow you to pull stock prices and trading indicators. You will find the following implementation:
 
