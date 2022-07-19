@@ -13,7 +13,6 @@ This repo is a template for dockerized flask applications(REST API). This simpli
 - Dependency injection
 
 <img src="./docs/img/architecture.png" width="700"/>
-<br></br>
 
 ## Prerequisites
 
