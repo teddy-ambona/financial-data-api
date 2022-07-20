@@ -19,13 +19,14 @@ setup-db:
 	docker-compose -f docker-compose.yaml up -d postgres-db
 	sleep 3  # Wait for DB to be up and running
 
-integration-tests:
-	$(DRUN) -e ENVIRONMENT=${ENV} --entrypoint="" --network host ${IMAGE_TAG} bash -c \
-	"python -m unittest discover -s tests/integration/"
+teardown-db:
+	docker-compose -f docker-compose.yaml rm -s -v -f postgres-db
 
-tests:
+integration-tests:
 	make setup-db
-	make integration-tests
+	$(DRUN) -e ENVIRONMENT=${ENV} --entrypoint="" --network host ${IMAGE_TAG} bash -c \
+	"python -m pytest -v --cov=src tests/integration/"
+	make teardown-db
 
 flake8:
 	# The GitHub editor is 127 chars wide
@@ -55,3 +56,7 @@ pip-compile:
 safety:
 	$(DBASH) \
 	"pip install -U pip && pip install safety && safety check -r requirements.txt"
+
+run-cicd:
+	# Run the full CICD pipeline without pushing to Docker Hub.
+	act -j integration-tests --secret-file secrets.txt --artifact-server-path /tmp/artifacts

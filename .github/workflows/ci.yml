@@ -3,7 +3,7 @@ name: CICD Pipeline
 on: [push]
 
 env:
-  IMAGE_VERSION: 0.1.0
+  IMAGE_VERSION: 0.2.0
   DOCKER_REPOSITORY: tambona29/financial-data-api
 
 jobs:
@@ -148,9 +148,19 @@ jobs:
       - name: checkout repo
         uses: actions/checkout@v2
 
+      - name: Install docker-compose if running pipeline locally
+        run: |
+          if ! command -v docker-compose &> /dev/null; then
+            echo Installing docker-compose
+
+            curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" \
+            -o /usr/local/bin/docker-compose
+
+            chmod +x /usr/local/bin/docker-compose
+          fi
+
       - name: Run integration tests
         run: |
-          make setup-db
           make IMAGE_TAG=${IMAGE_TAG} integration-tests
 
   push-to-registry:

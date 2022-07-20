@@ -6,8 +6,8 @@ from flask import Flask
 from flask.json import JSONEncoder
 
 from src.models import db
-from src.stocks import stocks
-from src.healthcheck import healthcheck
+from src.blueprints.stocks import stocks
+from src.blueprints.healthcheck import healthcheck
 
 
 class CustomJSONEncoder(JSONEncoder):
