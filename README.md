@@ -121,6 +121,8 @@ DOCKERHUB_TOKEN=<YOUR_DOCKERHUB_TOKEN>
 
 `--artifact-server-path` has to be specified as the workflow is using `actions/upload-artifact` and `actions/download-artifact`([cf issue](https://github.com/nektos/act/issues/329#issuecomment-1187246629))
 
+Optionally you could also run pipeline jobs using the Makefile directly.
+
 Example:
 
 ```bash
@@ -150,7 +152,6 @@ The requirements are:
 > The [docker/metadata-action@v4](https://github.com/docker/metadata-action#semver) task can automate this but it requires using git tags which can be a bit cumbersome as it requires an update for each commit. So I preferred reimplementing something straightforward that uses the git branch name and commit SHA to form the image tag.
 
 ## Testing framework
-
 
 ### [GIVEN-WHEN-THEN](https://martinfowler.com/bliki/GivenWhenThen.html) (Martin Fowler)
 
