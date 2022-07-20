@@ -39,6 +39,7 @@ curl -I http://127.0.0.1:5000/_healthcheck
 ## Project file structure
 
 ```text
+.
 ├── .github
 │   ├── workflow
 │   │   └── cicd.yaml
@@ -56,15 +57,19 @@ curl -I http://127.0.0.1:5000/_healthcheck
 │           └── config.yaml
 ├── docs
 │   └── img
-│       └── CICD.png
+│       ├── CICD.png
+│       ├── architecture.png
+│       └── four-phase-test.gif
 ├── src
 │   ├── __init__.py
 │   ├── app.py
-│   ├── healthcheck.py
-│   ├── models.py
-│   └── stocks.py
+│   ├── blueprints
+│   │   ├── healthcheck.py
+│   │   └── stocks.py
+│   └── models.py
 ├── tests
 │   ├── __init__.py
+│   ├── conftest.py
 │   └── integration
 │       ├── __init__.py
 │       ├── test_app.py
@@ -116,13 +121,14 @@ DOCKERHUB_TOKEN=<YOUR_DOCKERHUB_TOKEN>
 
 `--artifact-server-path` has to be specified as the workflow is using `actions/upload-artifact` and `actions/download-artifact`([cf issue](https://github.com/nektos/act/issues/329#issuecomment-1187246629))
 
-Optionally you could also run pipeline jobs using the Makefile directly
+Optionally you could also run pipeline jobs using the Makefile directly.
 
 Example:
 
 ```bash
 make pydocstyle
-make setup-db integration-tests
+make tests
+make run-cicd  # Run the full CICD pipeline without pushing to Docker Hub
 ```
 
 ## Docker image build pattern
@@ -144,3 +150,22 @@ The requirements are:
 |   main    |     5     |      1.0.0    |    1.0.0 |
 
 > The [docker/metadata-action@v4](https://github.com/docker/metadata-action#semver) task can automate this but it requires using git tags which can be a bit cumbersome as it requires an update for each commit. So I preferred reimplementing something straightforward that uses the git branch name and commit SHA to form the image tag.
+
+## Testing framework
+
+### [GIVEN-WHEN-THEN](https://martinfowler.com/bliki/GivenWhenThen.html) (Martin Fowler)
+
+**GIVEN** - Describes the state of the world before you begin the behavior you're specifying in this scenario. You can think of it as the pre-conditions to the test.
+
+**WHEN** - Behavior that you're specifying.
+
+**THEN** - Changes you expect due to the specified behavior.
+
+### [Four-Phase Test](http://xunitpatterns.com/Four%20Phase%20Test.html) (Gerard Meszaros)
+
+<img src="./docs/img/four-phase-test.gif" width="700"/>
+
+*(image from [Four-Phase Test](http://xunitpatterns.com/Four%20Phase%20Test.html))*
+<br></br>
+
+For integration testing, the *Setup* phase consists in truncating and repopulating the DB.
