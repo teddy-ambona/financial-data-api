@@ -163,7 +163,7 @@ The requirements are:
 
 ### [Four-Phase Test](http://xunitpatterns.com/Four%20Phase%20Test.html) (Gerard Meszaros)
 
-<img src="./docs/img/four-phase-test.gif" width="700"/>
+<img src="./docs/img/four-phase-test.png" width="700"/>
 
 *(image from [Four-Phase Test](http://xunitpatterns.com/Four%20Phase%20Test.html))*
 <br></br>
