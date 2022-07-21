@@ -3,7 +3,7 @@ name: CICD Pipeline
 on: [push]
 
 env:
-  IMAGE_VERSION: 0.2.0
+  IMAGE_VERSION: 0.3.0
   DOCKER_REPOSITORY: tambona29/financial-data-api
 
 jobs:
