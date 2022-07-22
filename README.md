@@ -102,7 +102,7 @@ curl -I http://127.0.0.1:5000/_healthcheck
 - **push-to-registry:** Push the Docker image to Docker Hub
 
 > Note that the last job should be skipped when running the pipeline locally.
-This is ensured using `if: ${{ env.ACT }}` in the `push-to-registry` job.
+This is ensured using `if: ${{ !env.ACT }}` in the `push-to-registry` job.
 Running this locally means there will be a conflicting image tag when the Github Actions CICD will try and run it a second time.
 
 ## Running the CICD pipeline locally

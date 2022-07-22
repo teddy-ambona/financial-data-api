@@ -70,6 +70,7 @@ jobs:
             SUFFIX="-${BRANCH_NAME}.dev.${GITHUB_SHA}"
           fi
           echo "::set-output name=IMAGE_TAG::${DOCKER_REPOSITORY}:${IMAGE_VERSION}${SUFFIX}"
+          echo "::set-output name=ACT::${ACT}"
 
       - name: Checkout
         uses: actions/checkout@v2
@@ -99,6 +100,7 @@ jobs:
           path: /tmp/flask-app.tar
     outputs:
       IMAGE_TAG: ${{ steps.build_image_tag.outputs.IMAGE_TAG }}
+      ACT: ${{ steps.build_image_tag.outputs.ACT }}
 
   image-vulnerabilities:
     needs: [build]
@@ -192,7 +194,9 @@ jobs:
 
   push-to-registry:
     # Ensure this job is skipped when running locally with act
-    if: ${{ env.ACT }}
+    # ${{ !env.ACT }} does not work here so we use the job outputs instead
+    # issue: https://github.com/actions/runner/issues/480
+    if: ${{ !needs.build.outputs.ACT}}
 
     needs: [build, integration-tests]
     runs-on: ubuntu-latest
