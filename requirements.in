@@ -2,6 +2,7 @@ flask-sqlalchemy
 pandas>1.4
 psycopg2-binary
 pytest
+pytest-mock
 pytest-cov
 pyyaml
 schema

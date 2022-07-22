@@ -51,6 +51,9 @@ def populate_db():
         # Create tables with SQLAlchemy
         db.create_all()
 
+        # Truncate the tables in case a test got interrupted before the teardown happened
+        db.engine.execute("TRUNCATE market_data.stocks_ohlcv;")
+
         import_csv_into_db("tests/integration/test_data/stocks_ohlcv.csv", "market_data.stocks_ohlcv", db.engine)
 
         # Any teardown code for that fixture is placed after the yield.
