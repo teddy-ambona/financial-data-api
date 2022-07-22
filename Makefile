@@ -22,11 +22,19 @@ setup-db:
 teardown-db:
 	docker-compose -f docker-compose.yaml rm -s -v -f postgres-db
 
+unit-tests:
+	$(DRUN) -e ENVIRONMENT=${ENV} --entrypoint="" ${IMAGE_TAG} bash -c \
+	"python -m pytest -v --cov=src tests/unit/"
+
 integration-tests:
 	make setup-db
 	$(DRUN) -e ENVIRONMENT=${ENV} --entrypoint="" --network host ${IMAGE_TAG} bash -c \
 	"python -m pytest -v --cov=src tests/integration/"
 	make teardown-db
+
+tests:
+	make unit-tests
+	make integration-tests
 
 flake8:
 	# The GitHub editor is 127 chars wide
@@ -59,4 +67,4 @@ safety:
 
 run-cicd:
 	# Run the full CICD pipeline without pushing to Docker Hub.
-	act -j integration-tests --secret-file secrets.txt --artifact-server-path /tmp/artifacts
+	act --secret-file secrets.txt --artifact-server-path /tmp/artifacts

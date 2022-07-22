@@ -97,8 +97,13 @@ curl -I http://127.0.0.1:5000/_healthcheck
 - **image-misconfiguration:** Detect configuration issues in Dockerfile(Trivy)
 - **build:** Build Docker image and push it to the pipeline artifacts
 - **image-vulnerabilities:** Image vulnerablities scanner(Trivy)
+- **unit-tests:** Test the smallest piece of code(functions) that can be isolated
 - **integration-tests:** Series of tests which call the API
 - **push-to-registry:** Push the Docker image to Docker Hub
+
+> Note that the last job should be skipped when running the pipeline locally.
+This is ensured using `if: ${{ !env.ACT }}` in the `push-to-registry` job.
+Running this locally means there will be a conflicting image tag when the Github Actions CICD will try and run it a second time.
 
 ## Running the CICD pipeline locally
 
