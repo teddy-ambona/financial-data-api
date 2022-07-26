@@ -3,7 +3,7 @@ from schema import Schema
 from src.helpers import resample_ohlcv_dataframe
 
 
-def test_time_series(client, populate_db):
+def test_time_series(client, db_fixture):
     """
     GIVEN a StocksOHLCV model
     WHEN the '/stocks/time-series/<symbol> endpoint is requested (GET)
@@ -29,7 +29,7 @@ def test_time_series(client, populate_db):
     assert len(r.json) == 754
 
 
-def test_time_series_resampled(client, populate_db, mocker):
+def test_time_series_resampled(client, db_fixture, mocker):
     """
     GIVEN a StocksOHLCV model
     WHEN the '/stocks/time-series/<symbol> endpoint is requested (GET) with interval and frequency parameters
@@ -67,7 +67,7 @@ def test_time_series_resampled(client, populate_db, mocker):
     assert len(r.json) == 37
 
 
-def test_time_series_incorrect_params(client, populate_db):
+def test_time_series_incorrect_params(client, db_fixture):
     """
     GIVEN a StocksOHLCV model
     WHEN the '/stocks/time-series/<symbol> endpoint is requested (GET) with wrong HTTP parameters.

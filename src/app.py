@@ -28,12 +28,13 @@ def create_app():
     # Fetch config
     ENVIRONMENT = os.environ['ENVIRONMENT']
     config = safe_load(open(f"/app/settings/{ENVIRONMENT}/config.yaml", 'r'))
+    config['DB']['DB_PASSWORD'] = os.environ['DB_PASSWORD']
 
     # Set up flask config
     app.config.update(config['APP'])
     app.json_encoder = CustomJSONEncoder
 
-    string_con = "postgresql://{DB_USERNAME}@{DB_HOST}:{DB_PORT}/{DB_NAME}".format(**config['DB'])
+    string_con = "postgresql://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}".format(**config['DB'])
     app.config['SQLALCHEMY_DATABASE_URI'] = string_con
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
