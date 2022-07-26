@@ -36,12 +36,7 @@ def import_csv_into_db(fpath, table_name, engine):
 
 
 def populate_db():
-    """
-    Populate DB with the CSVs located in /tests/integration/test_data.
-
-    This function is intended to be called from the Makefile to populate the
-    database for local testing as well as in "db_fixture" for the integration tests.
-    """
+    """Populate DB with the CSVs located in /tests/integration/test_data."""
     db.engine.execute("CREATE SCHEMA IF NOT EXISTS market_data;")
 
     # Create tables with SQLAlchemy
@@ -74,6 +69,11 @@ def db_fixture():
 
 
 def populate_db_for_local_testing():
+    """
+    Populate DB.
+
+    This function is intended to be called from the Makefile to populate the database for local testing.
+    """
     app = create_app()
 
     with app.app_context():
