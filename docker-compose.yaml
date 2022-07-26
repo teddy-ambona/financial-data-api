@@ -8,7 +8,8 @@ services:
     ports:
       - "5000:5000"
     environment:
-      - ENVIRONMENT=test
+      - ENVIRONMENT=local
+      - DB_PASSWORD=postgres
     depends_on:
       - postgres-db
 

@@ -27,7 +27,7 @@ def time_series(symbol):
     df = pd.read_sql(query.statement, query.session.bind)
 
     # Apply transformation
-    if "interval" and "frequency" in args:
+    if ("interval" in args) and ("frequency" in args):
         df = resample_ohlcv_dataframe(df, args["interval"], args["frequency"])
 
     return jsonify(df.to_dict(orient="records"))

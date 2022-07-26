@@ -75,13 +75,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Update .pgpass with secret values
-        # This is a template only, in production/development environment
-        # secrets should be injected using secret variables.
-        run: |
-          sed -i 's/DB_USERNAME/postgres/g' config/.pgpass
-          sed -i 's/DB_PASSWORD/postgres/g' config/.pgpass
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
 

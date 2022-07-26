@@ -24,7 +24,11 @@ This repo is a template for dockerized flask applications(REST API). This simpli
 
 ## Quickstart
 
-Run the following commands to build the Docker image and run the app and db services:
+Run the following commands to:
+
+- Build the Docker image
+- Run the app and db services
+- Populate DB with TSLA and AMZN stock prices
 
 ```bash
 make build up
@@ -36,6 +40,50 @@ Verify the API is running:
 curl -I http://127.0.0.1:5000/_healthcheck
 ```
 
+Get resampled data
+
+```bash
+$ curl -G -d 'interval=1' -d 'frequency=Annual' http://127.0.0.1:5000/stocks/time-series/AMZN
+[
+  {
+    "close": 92.392,
+    "high": 101.79,
+    "low": 84.253,
+    "open": 95.455,
+    "period_start": "2019-01-01",
+    "symbol": "AMZN",
+    "volume": 8154332000
+  },
+  {
+    "close": 162.8465,
+    "high": 177.6125,
+    "low": 81.3015,
+    "open": 93.75,
+    "period_start": "2020-01-01",
+    "symbol": "AMZN",
+    "volume": 24950814000
+  },
+  {
+    "close": 166.717,
+    "high": 188.654,
+    "low": 144.05,
+    "open": 163.5,
+    "period_start": "2021-01-01",
+    "symbol": "AMZN",
+    "volume": 17076362000
+  },
+  {
+    "close": 116.46,
+    "high": 171.4,
+    "low": 101.26,
+    "open": 167.55,
+    "period_start": "2022-01-01",
+    "symbol": "AMZN",
+    "volume": 10032250600
+  }
+]
+```
+
 ## Project file structure
 
 ```text
@@ -44,7 +92,6 @@ curl -I http://127.0.0.1:5000/_healthcheck
 │   ├── workflow
 │   │   └── cicd.yaml
 ├── config
-│   ├── .pgpass
 │   ├── .yamllint
 │   └── api_settings
 │       ├── development
@@ -70,12 +117,16 @@ curl -I http://127.0.0.1:5000/_healthcheck
 ├── tests
 │   ├── __init__.py
 │   ├── conftest.py
-│   └── integration
+│   ├── integration
+│   │   ├── test_data
+│   │   │   └── stocks_ohlcv.csv
+│   │   ├── __init__.py
+│   │   ├── test_app.py
+│   │   └── test_stocks.py
+│   └── unit
 │       ├── __init__.py
-│       ├── test_app.py
-│       ├── test_data
-│       │   └── stocks_ohlcv.csv
-│       └── test_stocks.py
+│       └── test_helpers.py
+├── .dockerignore
 ├── .gitignore
 ├── docker-compose.yaml
 ├── Dockerfile

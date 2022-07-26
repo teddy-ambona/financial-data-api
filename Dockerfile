@@ -10,9 +10,6 @@ RUN apt-get update -y && apt-get install -y \
 
 RUN pip install pip -U && pip install pip-tools
 
-COPY config/.pgpass /home/app/.pgpass
-RUN chown app /home/app/.pgpass && chmod 0600 /home/app/.pgpass
-
 RUN mkdir /app && chown -R app /app
 
 WORKDIR /app

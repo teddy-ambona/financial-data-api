@@ -1,6 +1,7 @@
-.PHONY: build integration-tests run-app flake8 pydocstyle yamllint pip-compile safety up down tests
+.PHONY: build integration-tests run-app flake8 pydocstyle yamllint pip-compile safety up down tests populate-db run-cicd
 
 ENV = test
+DB_PASSWORD=postgres
 IMAGE_TAG = flask-app:latest
 DRUN = docker run --rm
 DBASH = $(DRUN) -u root -v ${PWD}:/foo -w="/foo" python bash -c 
@@ -10,7 +11,9 @@ build:
 
 up:
 	export IMAGE_TAG=${IMAGE_TAG} && \
-	docker-compose -f docker-compose.yaml up
+	make setup-db && \
+	make populate-db && \
+	docker-compose -f docker-compose.yaml up -d flask-app
 
 down:
 	docker-compose down
@@ -22,13 +25,18 @@ setup-db:
 teardown-db:
 	docker-compose -f docker-compose.yaml rm -s -v -f postgres-db
 
+populate-db:
+	# Populate local database with test csvs
+	$(DRUN) -e ENVIRONMENT=${ENV} -e DB_PASSWORD=${DB_PASSWORD} --entrypoint="" --network host ${IMAGE_TAG} python -c \
+	"from tests.conftest import populate_db_for_local_testing; populate_db_for_local_testing();"
+
 unit-tests:
 	$(DRUN) -e ENVIRONMENT=${ENV} --entrypoint="" ${IMAGE_TAG} bash -c \
 	"python -m pytest -v --cov=src tests/unit/"
 
 integration-tests:
 	make setup-db
-	$(DRUN) -e ENVIRONMENT=${ENV} --entrypoint="" --network host ${IMAGE_TAG} bash -c \
+	$(DRUN) -e ENVIRONMENT=${ENV} -e DB_PASSWORD=${DB_PASSWORD} --entrypoint="" --network host ${IMAGE_TAG} bash -c \
 	"python -m pytest -v --cov=src tests/integration/"
 	make teardown-db
 
