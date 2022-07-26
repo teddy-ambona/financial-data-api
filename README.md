@@ -92,7 +92,6 @@ $ curl -G -d 'interval=1' -d 'frequency=Annual' http://127.0.0.1:5000/stocks/tim
 │   ├── workflow
 │   │   └── cicd.yaml
 ├── config
-│   ├── .pgpass
 │   ├── .yamllint
 │   └── api_settings
 │       ├── development
@@ -118,12 +117,16 @@ $ curl -G -d 'interval=1' -d 'frequency=Annual' http://127.0.0.1:5000/stocks/tim
 ├── tests
 │   ├── __init__.py
 │   ├── conftest.py
-│   └── integration
+│   ├── integration
+│   │   ├── test_data
+│   │   │   └── stocks_ohlcv.csv
+│   │   ├── __init__.py
+│   │   ├── test_app.py
+│   │   └── test_stocks.py
+│   └── unit
 │       ├── __init__.py
-│       ├── test_app.py
-│       ├── test_data
-│       │   └── stocks_ohlcv.csv
-│       └── test_stocks.py
+│       └── test_helpers.py
+├── .dockerignore
 ├── .gitignore
 ├── docker-compose.yaml
 ├── Dockerfile
