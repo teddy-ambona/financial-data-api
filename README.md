@@ -211,6 +211,10 @@ The requirements are:
 
 > The [docker/metadata-action@v4](https://github.com/docker/metadata-action#semver) task can automate this but it requires using git tags which can be a bit cumbersome as it requires an update for each commit. So I preferred reimplementing something straightforward that uses the git branch name and commit SHA to form the image tag.
 
+### Version bump
+
+Each PR should contain a version of the `IMAGE_VERSION` in `.github/workflows/ci.yml`.
+
 ## Testing framework
 
 ### [GIVEN-WHEN-THEN](https://martinfowler.com/bliki/GivenWhenThen.html) (Martin Fowler)
