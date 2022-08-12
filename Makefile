@@ -75,4 +75,8 @@ safety:
 
 run-cicd:
 	# Run the full CICD pipeline without pushing to Docker Hub.
-	act --secret-file secrets.txt --artifact-server-path /tmp/artifacts
+	act --secret-file config/secrets.txt --artifact-server-path /tmp/artifacts
+
+doctoc:
+	$(DBASH) \
+	"npm install -g doctoc && doctoc --github ${FILE_PATH}"

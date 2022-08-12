@@ -2,14 +2,15 @@
 
 This repo is a template for dockerized flask applications(REST API). This simplified API exposes GET endpoints that allow you to pull stock prices and trading indicators. You will find the following implementation:
 
+- Terraform (Iaac) deployment on AWS
+- How to keep your terraform code DRY with Terragrunt
 - Github Actions CICD
-- Docker PostgreSQL DB setup for local testing
 - Docker image build and distribution pattern
+- Docker PostgreSQL DB setup for local testing
 - Services configuration with Docker Compose
 - Makefile template
-- Flask blueprints
-- Testing patterns
-- Flask-SQLAlchemy implementation
+- Testing patterns(unit & integration with Pytest)
+- Flask-SQLAlchemy with blueprints implementation
 - Dependency injection
 
 <img src="./docs/img/architecture.png" width="700"/>
@@ -19,6 +20,9 @@ This repo is a template for dockerized flask applications(REST API). This simpli
 - [Docker](https://docs.docker.com/get-docker/)
 - [Docker Compose CLI plugin](https://docs.docker.com/compose/install/compose-plugin/)
 - If running on windows: [Docker remote containers on WSL 2](https://docs.microsoft.com/en-us/windows/wsl/tutorials/wsl-containers)
+- [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
+- [Terraform CLI](https://www.terraform.io/cli/install/apt)
+- [Terragrunt](https://terragrunt.gruntwork.io/docs/getting-started/install/)
 
 > The API doesn't require python installed on your machine.
 
@@ -163,11 +167,11 @@ Install [act](https://github.com/nektos/act) to run the jobs on your local machi
 Example:
 
 ```bash
-act --secret-file secrets.txt --artifact-server-path /tmp/artifacts  # Run the full CICD pipeline
-act -j pydocstyle --secret-file secrets.txt --artifact-server-path /tmp/artifacts # Run specific job
+act --secret-file config/secrets.txt --artifact-server-path /tmp/artifacts  # Run the full CICD pipeline
+act -j pydocstyle --secret-file config/secrets.txt --artifact-server-path /tmp/artifacts # Run specific job
 ```
 
-In `secrets.txt`:
+In `config/secrets.txt`:
 
 ```bash
 GITHUB_TOKEN=<YOUR_PAT_TOKEN>
@@ -225,3 +229,21 @@ The requirements are:
 <br></br>
 
 For integration testing, the *Setup* phase consists in truncating and repopulating the DB.
+
+## Deployment to AWS with Terraform
+
+IMPORTANT: Following these instructions will deploy code into your AWS account. All of this qualifies for the AWS Free Tier, but if you've already used up your credits, running this code may cost you money. Also this repo is meant to be deployed to your sandbox environment.
+
+[Terraform](https://www.terraform.io/docs) is an infrastructure as code (IaC) tool that allows you to build, change, and version infrastructure safely and efficiently. This includes both low-level components like compute instances, storage, and networking, as well as high-level components like DNS entries and SaaS features. I you are new to Terraform I recommend you read this first [A Comprehensive Guide to Terraform](https://blog.gruntwork.io/a-comprehensive-guide-to-terraform-b3d32832baca#.b6sun4nkn).
+
+Also check [why choosing Terraform over other configuration management and provisioning tools](https://blog.gruntwork.io/why-we-use-terraform-and-not-chef-puppet-ansible-saltstack-or-cloudformation-7989dad2865c). TLDR; Terraform is an open source, cloud-agnostic provisioning tool that supports immutable infrastructure, a declarative language, and a client-only architecture.
+
+### Keep your code DRY with Terragrunt
+
+Terragrunt is a thin wrapper for Terraform that provides extra tools for working with multiple Terraform modules. https://www.gruntwork.io
+
+Sample for reference: https://github.com/gruntwork-io/terragrunt-infrastructure-live-example
+
+### Best practices
+
+I strongly recommend going through the [terraform best practices](https://github.com/ozbillwang/terraform-best-practices) before exploring this repo.
