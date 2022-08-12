@@ -1,4 +1,4 @@
-.PHONY: build integration-tests run-app flake8 pydocstyle yamllint pip-compile safety up down tests populate-db run-cicd
+.PHONY: build integration-tests run-app flake8 pydocstyle yamllint pip-compile safety up down tests populate-db run-cicd doctoc
 
 ENV = test
 DB_PASSWORD=postgres
@@ -78,5 +78,5 @@ run-cicd:
 	act --secret-file config/secrets.txt --artifact-server-path /tmp/artifacts
 
 doctoc:
-	$(DBASH) \
+	$(DRUN) -u root -v ${PWD}:/foo -w="/foo" node bash -c \
 	"npm install -g doctoc && doctoc --github ${FILE_PATH}"

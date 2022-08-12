@@ -1,5 +1,25 @@
 # financial-data-api &middot; ![ci](https://github.com/teddy-ambona/financial-data-api/actions/workflows/ci.yml/badge.svg)
 
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Prerequisites](#prerequisites)
+- [Quickstart](#quickstart)
+- [Project file structure](#project-file-structure)
+- [CICD overview](#cicd-overview)
+- [Running the CICD pipeline locally](#running-the-cicd-pipeline-locally)
+- [Docker image build pattern](#docker-image-build-pattern)
+  - [SemVer2](#semver2)
+  - [Version bump](#version-bump)
+- [Testing framework](#testing-framework)
+  - [GIVEN-WHEN-THEN (Martin Fowler)](#given-when-then-martin-fowler)
+  - [Four-Phase Test (Gerard Meszaros)](#four-phase-test-gerard-meszaros)
+- [Deployment to AWS with Terraform](#deployment-to-aws-with-terraform)
+  - [Keep your code DRY with Terragrunt](#keep-your-code-dry-with-terragrunt)
+  - [Best practices](#best-practices)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 This repo is a template for dockerized flask applications(REST API). This simplified API exposes GET endpoints that allow you to pull stock prices and trading indicators. You will find the following implementation:
 
 - Terraform (Iaac) deployment on AWS
