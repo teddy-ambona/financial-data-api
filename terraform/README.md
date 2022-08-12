@@ -1,10 +1,23 @@
 # Terraform deployment
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+- [If you have a new AWS account](#if-you-have-a-new-aws-account)
+- [1 - Enter your global variables](#1---enter-your-global-variables)
+- [2 - Setup remote backend](#2---setup-remote-backend)
+- [3 - Create IAM user, role and policies](#3---create-iam-user-role-and-policies)
+- [Module dependencies](#module-dependencies)
+- [4 - Create VPC](#4---create-vpc)
+- [5 - Create security groups](#5---create-security-groups)
+- [6 - Create Postgres DB](#6---create-postgres-db)
+- [7 - Create web-server](#7---create-web-server)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 We create multiple environments(dev/stage/prod) using separated directories. Each directory has its own `terraform.state` file stored in s3, this is a best practice set to limit damages in case in errors. Also, the user who is running the terraform code does not need permission for the entire infrastructure but only for the resources he is trying to update.
 
 ## If you have a new AWS account
 
-If you already have your remote backend setup you can skip this part and jump to [3/ Create IAM user, role and policies](#3-create-iam-user-role-and-policies)
+If you already have your remote backend setup you can skip this part and jump to [3 - Create IAM user, role and policies](#3---create-iam-user-role-and-policies)
 
 The first step will be to create a s3 bucket to store the remote backend and to create a Dynamo DB for storing the lock.
 
@@ -20,14 +33,14 @@ cloud-nuke aws --region=us-east-2 --region=global
 
 Configure your AWS credentials as environment variables.
 
-> Important: You can use root user credentials for the steps 2/ and 3/ then you should delete the keys of the root user to comply with the [Security best practices in IAM](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html).
+> Important: You can use root user credentials for the steps 2 and 3 then you should delete the keys of the root user to comply with the [Security best practices in IAM](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html).
 
 ```bash
 export AWS_ACCESS_KEY_ID=<your access key id>
 export AWS_SECRET_ACCESS_KEY=<your secret access key>
 ```
 
-## 1/ Enter your global variables
+## 1 - Enter your global variables
 
 ```hcl
 # in common.hcl
@@ -37,7 +50,7 @@ locals {
 }
 ```
 
-## 2/ Setup remote backend
+## 2 - Setup remote backend
 
 Run the below commands to:
 
@@ -99,7 +112,7 @@ Successfully configured the backend "s3"! Terraform will automatically
 use this backend unless the backend configuration changes.
 ```
 
-## 3/ Create IAM user, role and policies
+## 3 - Create IAM user, role and policies
 
 In this section, we assume that the tfstate can be stored in the bucket `financial-data-api-demo-state` under the key `terraform_state/global/iam/terraform.tfstate`
 
@@ -143,14 +156,14 @@ terragrunt graph-dependencies | dot -Tsvg > graph.svg
 
 <img src="../docs/img/module_dependencies.png" width="250"/>
 
-## 4/ Create VPC
+## 4 - Create VPC
 
 [terraform-aws-modules/vpc/aws](https://github.com/terraform-aws-modules/terraform-aws-vpc)
 
-## 5/ Create security groups
+## 5 - Create security groups
 
 [terraform-aws-security-group](https://github.com/terraform-aws-modules/terraform-aws-security-group)
 
-## 6/ Create Postgres DB
+## 6 - Create Postgres DB
 
-## 7/ Create web-server
+## 7 - Create web-server
