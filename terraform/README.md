@@ -1,6 +1,5 @@
 # Terraform deployment
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
 - [If you have a new AWS account](#if-you-have-a-new-aws-account)
 - [1 - Enter your global variables](#1---enter-your-global-variables)
 - [2 - Setup remote backend](#2---setup-remote-backend)
@@ -10,8 +9,6 @@
 - [5 - Create security groups](#5---create-security-groups)
 - [6 - Create Postgres DB](#6---create-postgres-db)
 - [7 - Create web-server](#7---create-web-server)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 We create multiple environments(dev/stage/prod) using separated directories. Each directory has its own `terraform.state` file stored in s3, this is a best practice set to limit damages in case in errors. Also, the user who is running the terraform code does not need permission for the entire infrastructure but only for the resources he is trying to update.
 

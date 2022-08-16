@@ -1,5 +1,5 @@
 ---
-name: CICD Pipeline
+name: Application code CICD Pipeline
 on: [push]
 
 env:
@@ -49,6 +49,9 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: config
+
+          # File to scan
+          scan-ref: Dockerfile
           format: table
           exit-code: 1
           vuln-type: security-check
