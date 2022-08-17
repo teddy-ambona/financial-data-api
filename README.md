@@ -208,7 +208,7 @@ Example:
 ```bash
 make pydocstyle
 make tests
-make run-cicd  # Run the full CICD pipeline without pushing to Docker Hub
+make app-cicd  # Run the full CICD pipeline without pushing to Docker Hub
 ```
 
 ## Docker image build pattern
@@ -267,6 +267,8 @@ Also check [why choosing Terraform over other configuration management and provi
 Terragrunt is a thin wrapper for Terraform that provides extra tools for working with multiple Terraform modules. https://www.gruntwork.io
 
 Sample for reference: https://github.com/gruntwork-io/terragrunt-infrastructure-live-example
+
+Teragrunt generated files start with the prefix "terragrunt_" and are ignored in the `.gitignore` file to prevent them from being accidentally commmitted.
 
 ### Best practices
 

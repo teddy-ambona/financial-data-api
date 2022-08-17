@@ -1,4 +1,4 @@
-.PHONY: build integration-tests run-app flake8 pydocstyle yamllint pip-compile safety up down tests populate-db run-cicd
+.PHONY: build integration-tests run-app flake8 pydocstyle yamllint pip-compile safety up down tests populate-db app-cicd
 
 ENV = test
 DB_PASSWORD=postgres
@@ -83,7 +83,7 @@ safety:
 	$(DBASH) \
 	"pip install -U pip && pip install safety && safety check -r requirements.txt"
 
-# Run full CICD locally with the exception of the push-to-registry job
-run-cicd:
+# Run full application code CICD locally with the exception of the push-to-registry job
+app-cicd:
 	# Run the full CICD pipeline without pushing to Docker Hub.
 	act --secret-file config/secrets.txt --artifact-server-path /tmp/artifacts

@@ -1,0 +1,96 @@
+---
+name: Infrastructure code CICD Pipeline
+on: [push]
+
+jobs:
+  format:
+  # Checks if all Terraform configuration files are in a canonical format. Both
+  # configuration files (.tf) and variables files (.tfvars) are updated.
+  # JSON files (.tf.json or .tfvars.json) are not checked.
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.2.5
+        # Deactivate wrapper to make job faster
+        terraform_wrapper: false
+
+    - name: Terraform fmt
+      run: terraform fmt -check -diff=true -recursive
+
+    # Recursively find terragrunt.hcl files and check if they are written in a canonical format.
+    - name: Terragrunt hclfmt
+      run: terragrunt hclfmt --terragrunt-check --terragrunt-log-level debug
+
+  validate:
+  # Validate the configuration files in a directory, referring only to the
+  # configuration and not accessing any remote services such as remote state,
+  # provider APIs, etc.
+
+  # Validate runs checks that verify whether a configuration is syntactically
+  # valid and internally consistent, regardless of any provided variables or
+  # existing state. It is thus primarily useful for general verification of
+  # reusable modules, including correctness of attribute names and value types.
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.2.5
+        # Deactivate wrapper to make job faster
+        terraform_wrapper: false
+
+    - name: Terraform validate
+      run: terraform validate
+
+    - name: Terragrunt validate
+      # Emits information about the input variables that are configured with the
+      # given terragrunt configuration. Specifically, this command will print out
+      # unused inputs (inputs that are not defined as a terraform variable in the
+      # corresponding module) and undefined required inputs (required terraform
+      # variables that are not currently being passed in).
+      run: terragrunt validate-inputs --terragrunt-strict-validate
+
+  tflint:
+  # - Find possible errors (like illegal instance types) for major cloud providers (AWS/Azure/GCP).
+  # - Warn about deprecated syntax, unused declarations.
+  # - Enforce best practices, naming conventions.
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Init TFLint and run TFLint recursively
+      # nektos/act does not support caching so we init the AWS plugin in the same step
+      # cf https://github.com/nektos/act/issues/285
+      run: |
+        cd terraform/live && \
+
+        # Install AWS plugin
+        # tflint --init && \
+
+        # Parse files recursively and save output in a txt file
+        find -type d -not -path '*.terraform/*' -exec tflint -f compact {} \; > tflint_output.txt && \
+
+        # Print potential issues
+        cat tflint_output.txt && \
+
+        # Fail if any issues were found
+        [ -s "tflint_output.txt" ] && exit 1
+
+  tfsec:
+  # Static analysis of terraform templates to spot potential security issues
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v2
+
+        - name: tfsec
+          uses: aquasecurity/tfsec-action@v1.0.0
+          with:
+            additional_args: --minimum-severity HIGH
