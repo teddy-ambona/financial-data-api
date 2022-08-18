@@ -5,7 +5,8 @@
 # }
 
 module "vpc" {
-  source = "terraform-aws-modules/vpc/aws"
+  source      = "terraform-aws-modules/vpc/aws"
+  version     = "3.14.2"
 
   name = "${var.environment}-my-vpc"
   cidr = "10.0.0.0/16"
@@ -26,6 +27,6 @@ module "vpc" {
 
   tags = {
     Terraform   = "true"
-    Environment = "${var.environment}"
+    Environment = var.environment
   }
 }

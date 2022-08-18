@@ -1,6 +1,6 @@
 module "postgres_db" {
   source  = "terraform-aws-modules/rds/aws"
-
+  version = "5.0.3"
   identifier = "${var.environment}-demodb"
 
   engine            = "postgres"

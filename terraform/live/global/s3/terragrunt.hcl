@@ -1,7 +1,7 @@
 terraform_version_constraint = ">= 1.0.0"
 
 generate "provider" {
-  path      = "provider.tf"
+  path      = "terragrunt_provider.tf"
   if_exists = "overwrite"
   contents  = <<EOF
 terraform {

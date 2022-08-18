@@ -73,6 +73,14 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+  
+    - uses: terraform-linters/setup-tflint@v2
+      name: Setup TFLint
+      with:
+        tflint_version: v0.39.3
+
+    - name: Show version
+      run: tflint --version
 
     - name: Init TFLint and run TFLint recursively
       # nektos/act does not support caching so we init the AWS plugin in the same step
@@ -90,7 +98,7 @@ jobs:
         cat tflint_output.txt
 
         # Fail if any issues were found
-        [ -s "tflint_output.txt" ] && exit 1
+        if [ -s "tflint_output.txt" ]; then exit 1; fi
 
   tfsec:
   # Static analysis of terraform templates to spot potential security issues
