@@ -1,9 +1,9 @@
 terraform_version_constraint = ">= 1.0.0"
 
 generate "provider" {
-  path = "provider.tf"
+  path      = "provider.tf"
   if_exists = "overwrite"
-  contents = <<EOF
+  contents  = <<EOF
 terraform {
   required_providers {
     aws = {

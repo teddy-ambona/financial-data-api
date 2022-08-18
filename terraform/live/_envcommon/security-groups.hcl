@@ -3,9 +3,9 @@ dependencies {
 }
 
 generate "common" {
-  path = "terragrunt_common.tf"
+  path      = "terragrunt_common.tf"
   if_exists = "overwrite"
-  contents = <<EOF
+  contents  = <<EOF
 variable "server_port" {
   description = "The port the server will use for HTTP requests"
   type = number

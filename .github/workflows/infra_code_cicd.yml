@@ -26,18 +26,13 @@ jobs:
       run: terragrunt hclfmt --terragrunt-check --terragrunt-log-level debug
 
   validate:
-  # Validate the configuration files in a directory, referring only to the
-  # configuration and not accessing any remote services such as remote state,
-  # provider APIs, etc.
-
-  # Validate runs checks that verify whether a configuration is syntactically
-  # valid and internally consistent, regardless of any provided variables or
-  # existing state. It is thus primarily useful for general verification of
-  # reusable modules, including correctness of attribute names and value types.
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+
+    - name: cd into terraform directory
+      run: cd terraform/live
 
     - uses: hashicorp/setup-terraform@v2
       with:
@@ -45,8 +40,22 @@ jobs:
         # Deactivate wrapper to make job faster
         terraform_wrapper: false
 
-    - name: Terraform validate
-      run: terraform validate
+    - name: Setup Terragrunt v0.38.6
+      run: |
+        sudo wget -q -O /bin/terragrunt "https://github.com/gruntwork-io/terragrunt/releases/download/v0.38.6/terragrunt_linux_amd64"
+        sudo chmod +x /bin/terragrunt
+        terragrunt -v
+
+    - name: Terraform validate recursively
+      # Validate the configuration files in a directory, referring only to the
+      # configuration and not accessing any remote services such as remote state,
+      # provider APIs, etc.
+
+      # Validate runs checks that verify whether a configuration is syntactically
+      # valid and internally consistent, regardless of any provided variables or
+      # existing state. It is thus primarily useful for general verification of
+      # reusable modules, including correctness of attribute names and value types.
+      run: terragrunt run-all validate
 
     - name: Terragrunt validate
       # Emits information about the input variables that are configured with the
@@ -69,16 +78,16 @@ jobs:
       # nektos/act does not support caching so we init the AWS plugin in the same step
       # cf https://github.com/nektos/act/issues/285
       run: |
-        cd terraform/live && \
+        cd terraform/live
 
         # Install AWS plugin
-        # tflint --init && \
+        tflint --init
 
         # Parse files recursively and save output in a txt file
-        find -type d -not -path '*.terraform/*' -exec tflint -f compact {} \; > tflint_output.txt && \
+        find -type d -not -path '*.terraform/*' -exec tflint -f compact {} \; > tflint_output.txt
 
         # Print potential issues
-        cat tflint_output.txt && \
+        cat tflint_output.txt
 
         # Fail if any issues were found
         [ -s "tflint_output.txt" ] && exit 1
