@@ -4,20 +4,19 @@ on: [push]
 
 jobs:
   format:
-  # Checks if all Terraform configuration files are in a canonical format. Both
-  # configuration files (.tf) and variables files (.tfvars) are updated.
-  # JSON files (.tf.json or .tfvars.json) are not checked.
     runs-on: ubuntu-latest
+    container:
+      image: alpine/terragrunt:1.2.7
     steps:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - uses: hashicorp/setup-terraform@v2
-      with:
-        terraform_version: 1.2.5
-        # Deactivate wrapper to make job faster
-        terraform_wrapper: false
+    - name: cd into terraform directory
+      run: cd terraform/live
 
+    # Checks if all Terraform configuration files are in a canonical format. Both
+    # configuration files (.tf) and variables files (.tfvars) are updated.
+    # JSON files (.tf.json or .tfvars.json) are not checked.
     - name: Terraform fmt
       run: terraform fmt -check -diff=true -recursive
 
@@ -27,24 +26,14 @@ jobs:
 
   validate:
     runs-on: ubuntu-latest
+    container:
+      image: alpine/terragrunt:1.2.7
     steps:
     - name: Checkout
       uses: actions/checkout@v2
 
     - name: cd into terraform directory
       run: cd terraform/live
-
-    - uses: hashicorp/setup-terraform@v2
-      with:
-        terraform_version: 1.2.5
-        # Deactivate wrapper to make job faster
-        terraform_wrapper: false
-
-    - name: Setup Terragrunt v0.38.6
-      run: |
-        sudo wget -q -O /bin/terragrunt "https://github.com/gruntwork-io/terragrunt/releases/download/v0.38.6/terragrunt_linux_amd64"
-        sudo chmod +x /bin/terragrunt
-        terragrunt -v
 
     - name: Terraform validate recursively
       # Validate the configuration files in a directory, referring only to the
