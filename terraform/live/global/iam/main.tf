@@ -43,8 +43,8 @@ data "aws_iam_policy_document" "demo_policy" {
   # }
 
   statement {
-    effect    = "Deny"
-    actions   = [
+    effect = "Deny"
+    actions = [
       "iam:*User*",
       "iam:*Login*",
       "iam:*Group*",

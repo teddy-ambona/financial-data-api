@@ -1,6 +1,6 @@
 module "postgres_db" {
-  source  = "terraform-aws-modules/rds/aws"
-  version = "5.0.3"
+  source     = "terraform-aws-modules/rds/aws"
+  version    = "5.0.3"
   identifier = "${var.environment}-demodb"
 
   engine            = "postgres"
@@ -19,17 +19,6 @@ module "postgres_db" {
   maintenance_window = "Mon:00:00-Mon:03:00"
   backup_window      = "03:00-06:00"
 
-  tags = {
-    Environment = "dev"
-  }
-
-  # DB subnet group
-  create_db_subnet_group = false
-  db_subnet_group_name = "default"
-
-  # DB parameter group
-  family = "mysql5.7"
-
   # DB option group
   major_engine_version = "5.7"
 
@@ -38,29 +27,18 @@ module "postgres_db" {
 
   parameters = [
     {
-      name = "character_set_client"
+      name  = "character_set_client"
       value = "utf8mb4"
     },
     {
-      name = "character_set_server"
+      name  = "character_set_server"
       value = "utf8mb4"
     }
   ]
 
-  options = [
-    {
-      option_name = "MARIADB_AUDIT_PLUGIN"
+  tags = {
+    Terraform   = "true"
+    Environment = var.environment
+  }
 
-      option_settings = [
-        {
-          name  = "SERVER_AUDIT_EVENTS"
-          value = "CONNECT"
-        },
-        {
-          name  = "SERVER_AUDIT_FILE_ROTATIONS"
-          value = "37"
-        },
-      ]
-    },
-  ]
 }

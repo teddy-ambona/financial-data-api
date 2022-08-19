@@ -32,9 +32,12 @@ Configure your AWS credentials as environment variables.
 
 > Important: You can use root user credentials for the steps 2 and 3 then you should delete the keys of the root user to comply with the [Security best practices in IAM](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html).
 
+In `~/.aws/credentials` (or `%UserProfile%\.aws\credentials` on Windows):
+
 ```bash
-export AWS_ACCESS_KEY_ID=<your access key id>
-export AWS_SECRET_ACCESS_KEY=<your secret access key>
+[default]
+aws_access_key_id=<your access key id>
+aws_secret_access_key=<your secret access key>
 ```
 
 ## 1 - Enter your global variables
@@ -132,7 +135,8 @@ terragrunt apply
 
 Then delete creds and use user credentials for creating modules.
 
-The user credentials can be found in the JSON dictionary with `aws_iam_access_key` in the `terraform.tfstate` in s3.
+The user credentials can be found in the JSON dictionary with `aws_iam_access_key` in the `terraform.tfstate` in s3. You can now replace them in your `~/.aws/credentials` (or `%UserProfile%\.aws\credentials` on Windows).
+
 Note that Terraform stores the secrets in plain text in the .tfstate file, that is why is it not recommended to store it in Github but rather in S3 or other shared storage.
 
 ## Module dependencies
@@ -163,4 +167,4 @@ terragrunt graph-dependencies | dot -Tsvg > graph.svg
 
 ## 6 - Create Postgres DB
 
-## 7 - Create web-server
+## 7 - Deploy serverless web-app with ECS and Fargate

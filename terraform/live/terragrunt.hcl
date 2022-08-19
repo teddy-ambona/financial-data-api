@@ -1,5 +1,10 @@
 terraform_version_constraint = ">= 1.0.0"
 
+locals {
+  # Automatically load environment-level variables
+  env_vars = read_terragrunt_config(find_in_parent_folders("env.hcl"))
+}
+
 remote_state {
   backend = "s3"
   generate = {
@@ -7,9 +12,9 @@ remote_state {
     if_exists = "overwrite_terragrunt"
   }
   config = {
-    bucket         = "${local.common.locals.remote_state_bucket}"
+    bucket         = "${local.env_vars.locals.remote_state_bucket}"
     key            = "${path_relative_to_include()}/terraform.tfstate"
-    region         = "${local.common.locals.aws_region}"
+    region         = "${local.env_vars.locals.aws_region}"
     dynamodb_table = "financial-data-api-demo-locks"
     encrypt        = true
   }
@@ -38,30 +43,10 @@ terraform {
 }
 
 provider "aws" {
-  region = "${local.common.locals.aws_region}"
+  region = "${local.env_vars.locals.aws_region}"
 
   # Only these AWS Account IDs may be operated on by this template
-  allowed_account_ids = ["${local.common.locals.aws_account_id}"]
+  allowed_account_ids = ["${local.env_vars.locals.aws_account_id}"]
 }
 EOF
 }
-
-# ----------------------------------------------------------------
-# Configure root level variables that all resources can inherit.
-# ----------------------------------------------------------------
-
-// locals {
-//   # Load the data from common.hcl
-//   common = read_terragrunt_config(find_in_parent_folders("common.hcl"))
-// }
-
-// generate "common" {
-//   path = "terragrunt_common.tf"
-//   if_exists = "overwrite"
-//   contents = <<EOF
-// variable "remote_state_bucket" {
-//   type = string
-//   default = "${local.common.locals.remote_state_bucket}"
-// }
-// EOF
-// }
