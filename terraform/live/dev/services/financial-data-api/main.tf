@@ -3,7 +3,7 @@
 #   config = {
 #     bucket = "financial-data-api-demo"
 #     key    = "data-storage/postgres/terraform.tfstate"
-#     region = "us-east-2"
+#     region = "us-east-1"
 #   }
 # }
 

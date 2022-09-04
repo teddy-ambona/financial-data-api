@@ -10,7 +10,7 @@
 - [6 - Create Postgres DB](#6---create-postgres-db)
 - [7 - Create web-server](#7---create-web-server)
 
-We create multiple environments(dev/stage/prod) using separated directories. Each directory has its own `terraform.state` file stored in s3, this is a best practice set to limit damages in case in errors. Also, the user who is running the terraform code does not need permission for the entire infrastructure but only for the resources he is trying to update.
+We segment environments(dev/stage/prod) using separated directories. Each directory has its own `terraform.state` file stored in s3, this is a best practice set to limit damages in case in errors. Also, the user who is running the terraform code does not need permission for the entire infrastructure but only for the resources he is trying to update.
 
 ## If you have a new AWS account
 
@@ -22,7 +22,7 @@ Note that if anything goes wrong and you want to start from all over again you c
 
 ```bash
 # This will destroy all resources in the specified regions
-cloud-nuke aws --region=us-east-2 --region=global
+cloud-nuke aws --region=us-east-1 --region=global
 
 # cloud-nuke does not support IAM policies yet so you might also have to remove policies in the web-console
 # Github issue: https://github.com/gruntwork-io/cloud-nuke/issues/116#issuecomment-928002457
@@ -45,7 +45,7 @@ aws_secret_access_key=<your secret access key>
 ```hcl
 # in common.hcl
 locals {
-    aws_region = "us-east-2"
+    aws_region = "us-east-1"
     aws_account_id = "123456789"
 }
 ```

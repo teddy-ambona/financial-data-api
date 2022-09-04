@@ -14,11 +14,11 @@ terraform {
 }
 
 provider "aws" {
-  region = var.region
+  region = "${local.region}"
 }
 EOF
 }
 
-inputs = {
-  region = "us-east-2"
+locals {
+  region = "us-east-1"
 }
