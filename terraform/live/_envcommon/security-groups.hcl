@@ -11,22 +11,6 @@ generate "common" {
   path      = "terragrunt_common.tf"
   if_exists = "overwrite"
   contents  = <<EOF
-variable "server_port" {
-  description = "The port the server will use for HTTP requests"
-  type = number
-  default = 8080
-}
-
-variable "application" {
-  description = "application name"
-  default = "api-demo"
-}
-
-variable "environment" {
-  description = "environment name"
-  type        = string
-}
-
 locals {
   # use short name if possible, because some resources have length limit on its name.
   name_prefix    = "${local.env_vars.locals.application}-${local.env_vars.locals.environment}"
@@ -41,7 +25,7 @@ data "terraform_remote_state" "vpc" {
   config = {
     bucket = "${local.env_vars.locals.remote_state_bucket}"
     region = "${local.env_vars.locals.aws_region}"
-    key = "${local.env_vars.locals.environment}/security_groups/terraform.tfstate"
+    key = "${local.env_vars.locals.environment}/vpc/terraform.tfstate"
   }
 }
 EOF

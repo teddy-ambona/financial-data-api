@@ -168,9 +168,13 @@ terragrunt graph-dependencies | dot -Tsvg > graph.svg
 
 [cf terraform-aws-modules/vpc/aws](https://github.com/terraform-aws-modules/terraform-aws-vpc):
 
-This module will create a VPC with the following caracteristics:
+This module will:
 
-- new VPC
+- Create a new VPC
+- Attach an internet gateway to the VPC
+- Create a private subnet and a public subnet
+- Create a NAT gateway
+- Create a route table association
 
 ```bash
 cd terraform/live/dev/vpc
@@ -179,10 +183,23 @@ terragrunt plan
 terragrunt apply
 ```
 
-## 4 - Create security groups
+## 4 - Create security groups (firewalls)
 
-[terraform-aws-security-group](https://github.com/terraform-aws-modules/terraform-aws-security-group)
+[cf terraform-aws-security-group](https://github.com/terraform-aws-modules/terraform-aws-security-group)
+
+This module will:
+
+- Create a security group for the web-server
+- Create a security group for the database
+
+```bash
+cd terraform/live/dev/security-groups
+
+terragrunt plan
+terragrunt apply
+```
 
 ## 5 - Create Postgres DB
+
 
 ## 6 - Deploy serverless web-app with ECS and Fargate
