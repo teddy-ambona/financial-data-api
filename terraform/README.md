@@ -1,6 +1,6 @@
 # Terraform deployment
 
-- [If you have a new AWS account](#if-you-have-a-new-aws-account)
+- [[Optional] If you have a new AWS account](#optional-if-you-have-a-new-aws-account)
 - [1 - Enter your global variables](#1---enter-your-global-variables)
 - [2 - Setup remote backend](#2---setup-remote-backend)
 - [3 - Create IAM user, role and policies](#3---create-iam-user-role-and-policies)
@@ -8,11 +8,11 @@
 - [4 - Create VPC](#4---create-vpc)
 - [5 - Create security groups](#5---create-security-groups)
 - [6 - Create Postgres DB](#6---create-postgres-db)
-- [7 - Create web-server](#7---create-web-server)
+- [7 - Deploy serverless web-app with ECS and Fargate](#7---deploy-serverless-web-app-with-ecs-and-fargate)
 
 We segment environments(dev/stage/prod) using separated directories. Each directory has its own `terraform.state` file stored in s3, this is a best practice set to limit damages in case in errors. Also, the user who is running the terraform code does not need permission for the entire infrastructure but only for the resources he is trying to update.
 
-## If you have a new AWS account
+## [Optional] If you have a new AWS account
 
 If you already have your remote backend setup you can skip this part and jump to [3 - Create IAM user, role and policies](#3---create-iam-user-role-and-policies)
 
@@ -40,25 +40,23 @@ aws_access_key_id=<your access key id>
 aws_secret_access_key=<your secret access key>
 ```
 
-## 1 - Enter your global variables
-
-```hcl
-# in common.hcl
-locals {
-    aws_region = "us-east-1"
-    aws_account_id = "123456789"
-}
-```
-
-## 2 - Setup remote backend
+## 1 - Setup remote backend
 
 Run the below commands to:
 
 - create a financial-data-api-demo-state S3 bucket
 - create a Dynamo DB
 
+Update your region in terraform/live/global/s3/terragrunt.hcl, by default it is `us-east-1`
+
+```hcl
+locals {
+  aws_region = "us-east-1"
+}
+```
+
 ```bash
-cd live/global/s3
+cd terraform/live/global/s3
 
 # We can omit "terragrunt init" here as terragrunt has an Auto-Init feature.
 
@@ -66,24 +64,33 @@ terragrunt plan
 terragrunt apply
 ```
 
-now add replace the content of `live/global/s3/terragrunt.hcl` with this:
+Now we will setup remote terraform backend by appending this to the end of `terraform/live/global/s3/terragrunt.hcl`:
 
 ```hcl
-include "root" {
-  path = find_in_parent_folders()
+remote_state {
+  backend = "s3"
+  generate = {
+    path      = "terragrunt_backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    bucket         = "financial-data-api-demo-state"
+    key            = "global/s3/terraform.tfstate"
+    region         = local.aws_region
+    dynamodb_table = "financial-data-api-demo-locks"
+    encrypt        = true
+  }
 }
 ```
 
-Then run
+You can now run
 
 ```bash
 $ terragrunt init
 
 WARN[0001] The remote state S3 bucket financial-data-api-demo-state needs to be updated: 
-WARN[0001]   - Bucket Server-Side Encryption
 WARN[0001]   - Bucket Root Access
 WARN[0001]   - Bucket Enforced TLS
-WARN[0001]   - Bucket Public Access Blocking
 Remote state S3 bucket financial-data-api-demo-state is out of date. Would you like Terragrunt to update it? (y/n)
 ```
 
@@ -112,9 +119,9 @@ Successfully configured the backend "s3"! Terraform will automatically
 use this backend unless the backend configuration changes.
 ```
 
-## 3 - Create IAM user, role and policies
+## 2 - Create IAM user, role and policies
 
-In this section, we assume that the tfstate can be stored in the bucket `financial-data-api-demo-state` under the key `terraform_state/global/iam/terraform.tfstate`
+In this section, we assume that the tfstate can be stored in the bucket `financial-data-api-demo-state` under the key `global/iam/terraform.tfstate`
 
 We will now perform the following operations:
 
@@ -125,7 +132,7 @@ We will now perform the following operations:
 - output the `aws_access_key_id` and `aws_secret_access_key` of the newly created user
 
 ```bash
-cd ./live/global/iam
+cd terraform/live/global/iam
 
 # We can omit "terragrunt init" here as terragrunt has an Auto-Init feature.
 
@@ -157,14 +164,25 @@ terragrunt graph-dependencies | dot -Tsvg > graph.svg
 
 <img src="../docs/img/module_dependencies.png" width="250"/>
 
-## 4 - Create VPC
+## 3 - Create VPC
 
-[terraform-aws-modules/vpc/aws](https://github.com/terraform-aws-modules/terraform-aws-vpc)
+[cf terraform-aws-modules/vpc/aws](https://github.com/terraform-aws-modules/terraform-aws-vpc):
 
-## 5 - Create security groups
+This module will create a VPC with the following caracteristics:
+
+- new VPC
+
+```bash
+cd terraform/live/dev/vpc
+
+terragrunt plan
+terragrunt apply
+```
+
+## 4 - Create security groups
 
 [terraform-aws-security-group](https://github.com/terraform-aws-modules/terraform-aws-security-group)
 
-## 6 - Create Postgres DB
+## 5 - Create Postgres DB
 
-## 7 - Deploy serverless web-app with ECS and Fargate
+## 6 - Deploy serverless web-app with ECS and Fargate

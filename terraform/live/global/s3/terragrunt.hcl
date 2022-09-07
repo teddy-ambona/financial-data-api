@@ -14,11 +14,12 @@ terraform {
 }
 
 provider "aws" {
-  region = "${local.region}"
+  region = "${local.env_vars.aws_region}"
 }
 EOF
 }
 
 locals {
-  region = "us-east-1"
+  # Automatically load environment-level variables
+  env_vars = read_terragrunt_config(find_in_parent_folders("env.hcl"))
 }

@@ -4,11 +4,12 @@ resource "aws_eip" "nat" {
   vpc = true
 }
 
+# Note that this module will also attach an internet gateway to the VPC.
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "3.14.2"
 
-  name = "${var.environment}-my-vpc"
+  name = "${local.environment}-my-vpc"
   cidr = "10.0.0.0/16"
 
   azs             = ["us-east-1a"]
@@ -20,22 +21,12 @@ module "vpc" {
   single_nat_gateway = true
   # Avoid provisioning a new Elastic IP
   reuse_nat_ips       = true
-  external_nat_ip_ids = aws_eip.nat
+  external_nat_ip_ids = aws_eip.nat.*.id
 
   # enable_vpn_gateway  = true
 
   tags = {
     Terraform   = "true"
-    Environment = var.environment
-  }
-}
-
-# Allow communication between your VPC and the internet.
-resource "aws_internet_gateway" "gw" {
-  vpc_id = module.vpc.output.vpc_id
-
-  tags = {
-    Terraform   = "true"
-    Environment = var.environment
+    Environment = local.environment
   }
 }

@@ -1,6 +1,9 @@
 # Allows fetching information about the user who runs this script.
 data "aws_caller_identity" "current" {}
 
+# The attribute `${data.aws_region.current.name}` will be current region
+data "aws_region" "current" {}
+
 # Create user
 resource "aws_iam_user" "demo_user" {
   name = "demo_user"
@@ -33,7 +36,7 @@ data "aws_iam_policy_document" "demo_policy" {
   statement {
     effect    = "Allow"
     actions   = ["dynamodb:*"]
-    resources = ["arn:aws:dynamodb:${var.aws_region}:${data.aws_caller_identity.current.account_id}:table/financial-data-api-demo-locks"]
+    resources = ["arn:aws:dynamodb:::table/financial-data-api-demo-locks"]
   }
 
   # statement {
@@ -67,7 +70,7 @@ resource "aws_iam_policy" "policy_document" {
   policy = data.aws_iam_policy_document.demo_policy.json
 }
 
-# Assign policy to demo user
+# Assign in-line policy to demo user
 resource "aws_iam_user_policy_attachment" "attach-policy" {
   user       = aws_iam_user.demo_user.name
   policy_arn = aws_iam_policy.policy_document.arn
