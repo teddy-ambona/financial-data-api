@@ -1,12 +1,16 @@
 module "postgres_db" {
   source     = "terraform-aws-modules/rds/aws"
   version    = "5.0.3"
-  identifier = "${var.environment}-demodb"
+  identifier = "${local.environment}-demodb"
 
   engine            = "postgres"
   engine_version    = "14.2"
-  instance_class    = "db.t2.micro"
-  allocated_storage = 1
+
+  # DB instance which supports encryption
+  instance_class    = "db.t3.micro"
+
+  # The allocated storage in gigabytes, AWS requires a minimum of 20Gb
+  allocated_storage = 20
 
   db_name  = "market_data"
   username = "postgres"
@@ -14,31 +18,29 @@ module "postgres_db" {
 
   iam_database_authentication_enabled = true
 
-  vpc_security_group_ids = [aws_security_group.db.id]
+  vpc_security_group_ids = [data.terraform_remote_state.sg.outputs.db_sg_id]
+
+  # Associate DB to private subnets in order to avoid connection from the internet.
+  subnet_ids = data.terraform_remote_state.vpc.outputs.private_subnets_ids
+
+  # Need to create a new subnet group cf https://github.com/terraform-aws-modules/terraform-aws-rds/issues/395
+  create_db_subnet_group = true
 
   maintenance_window = "Mon:00:00-Mon:03:00"
   backup_window      = "03:00-06:00"
 
+  # DB parameter group
+  family = "postgres14"
+
   # DB option group
-  major_engine_version = "5.7"
+  major_engine_version = "14.2"
 
   # Database Deletion Protection
   deletion_protection = true
 
-  parameters = [
-    {
-      name  = "character_set_client"
-      value = "utf8mb4"
-    },
-    {
-      name  = "character_set_server"
-      value = "utf8mb4"
-    }
-  ]
-
   tags = {
     Terraform   = "true"
-    Environment = var.environment
+    Environment = local.environment
   }
 
 }

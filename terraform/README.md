@@ -201,5 +201,28 @@ terragrunt apply
 
 ## 5 - Create Postgres DB
 
+[cf terraform-aws-modules/rds/aws](https://registry.terraform.io/modules/terraform-aws-modules/rds/aws/latest)
 
-## 6 - Deploy serverless web-app with ECS and Fargate
+This module will:
+
+- Create a managed PostgresDB with RDS
+- Attach the previously created security-group to the DB
+- Associate DB to private subnets in order to avoid connection from the internet
+
+```bash
+cd terraform/live/dev/data-storage
+
+terragrunt plan
+terragrunt apply
+```
+
+## 6 - Create DB schema and populate data
+
+Let's use the following command to create a schema and populate our DB with the mock dataset
+
+Using our AWS "admin" user keys
+
+```bash
+```
+
+## 7 - Deploy serverless web-app with ECS and Fargate
