@@ -43,6 +43,7 @@ This repo is a template for dockerized flask applications(REST API). This simpli
 - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
 - [Terraform CLI](https://www.terraform.io/cli/install/apt)
 - [Terragrunt](https://terragrunt.gruntwork.io/docs/getting-started/install/)
+- [(Optional) Jq](https://stedolan.github.io/jq/download/)
 
 > The API doesn't require python installed on your machine.
 

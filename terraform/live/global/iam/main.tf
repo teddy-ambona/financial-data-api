@@ -1,17 +1,21 @@
-# Allows fetching information about the user who runs this script.
-data "aws_caller_identity" "current" {}
+module "iam_user" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-user"
+  version = "~> 5.3"
 
-# The attribute `${data.aws_region.current.name}` will be current region
-data "aws_region" "current" {}
+  name = "demo_admin_user"
 
-# Create user
-resource "aws_iam_user" "demo_user" {
-  name = "demo_user"
-}
+  # When destroying this user, destroy even if it has non-Terraform-managed
+  # IAM access keys, login profile or MFA devices. Without force_destroy a
+  # user with non-Terraform-managed access keys and login profile will fail to be destroyed.
+  force_destroy = true
 
-# Create access key
-resource "aws_iam_access_key" "demo_user" {
-  user = aws_iam_user.demo_user.name
+  # Create SSH keys
+  create_iam_access_key = true
+
+  # Create password for the user
+  create_iam_user_login_profile = true
+
+  password_reset_required = true
 }
 
 # Strenghten IAM password policy
@@ -25,53 +29,152 @@ resource "aws_iam_account_password_policy" "strict" {
   max_password_age               = 90 # Password expires after 90 days
 }
 
-# Create policy document (minimum AWS permissions necessary for a Terraform run).
-data "aws_iam_policy_document" "demo_policy" {
-  statement {
-    effect    = "Allow"
-    actions   = ["s3:*"]
-    resources = ["arn:aws:s3:::financial-data-api-demo"]
+# Create a group with Admin access and add "demo_admin_user" to it
+module "iam_group_with_policies" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-group-with-policies"
+  version = "~> 5.3"
+
+  name = "superadmins"
+
+  group_users = [
+    module.iam_user.iam_user_name
+  ]
+
+  attach_iam_self_management_policy = true
+
+  custom_group_policy_arns = [
+    "arn:aws:iam::aws:policy/AdministratorAccess",
+  ]
+
+  custom_group_policies = [
+    {
+      name   = "EnforceMFA"
+      policy = data.aws_iam_policy_document.mfa_document.json
+    }
+  ]
+
+  tags = {
+    Terraform   = "true"
+    Environment = "global"
   }
 
-  statement {
-    effect    = "Allow"
-    actions   = ["dynamodb:*"]
-    resources = ["arn:aws:dynamodb:::table/financial-data-api-demo-locks"]
-  }
+}
 
-  # statement {
-  #   effect    = "Allow"
-  #   actions   = ["iam:*"]
-  #   resources = ["arn:aws:iam:::*"]
-  # }
-
+# Create policy document that enforces MFA
+# cf https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_examples_aws_my-sec-creds-self-manage.html
+data "aws_iam_policy_document" "mfa_document" {
   statement {
-    effect = "Deny"
+    sid    = "AllowViewAccountInfo"
+    effect = "Allow"
     actions = [
-      "iam:*User*",
-      "iam:*Login*",
-      "iam:*Group*",
-      "iam:*Provider*",
-      "aws-portal:*",
-      "budgets:*",
-      "config:*",
-      "directconnect:*",
-      "aws-marketplace:*",
-      "aws-marketplace-management:*",
-      "ec2:*ReservedInstances*"
+      "iam:GetAccountPasswordPolicy",
+      "iam:ListVirtualMFADevices"
     ]
     resources = ["*"]
   }
-}
 
-# Create policy from policy document
-resource "aws_iam_policy" "policy_document" {
-  name   = "demo-policy-document"
-  policy = data.aws_iam_policy_document.demo_policy.json
-}
+  statement {
+    sid    = "AllowManageOwnPasswords"
+    effect = "Allow"
+    actions = [
+      "iam:ChangePassword",
+      "iam:GetUser"
+    ]
+    resources = ["arn:aws:iam::*:user/&{aws:username}"]
+  }
 
-# Assign in-line policy to demo user
-resource "aws_iam_user_policy_attachment" "attach-policy" {
-  user       = aws_iam_user.demo_user.name
-  policy_arn = aws_iam_policy.policy_document.arn
+  statement {
+    sid    = "AllowManageOwnAccessKeys"
+    effect = "Allow"
+    actions = [
+      "iam:CreateAccessKey",
+      "iam:DeleteAccessKey",
+      "iam:ListAccessKeys",
+      "iam:UpdateAccessKey"
+    ]
+    resources = ["arn:aws:iam::*:user/&{aws:username}"]
+  }
+
+  statement {
+    sid    = "AllowManageOwnSigningCertificates"
+    effect = "Allow"
+    actions = [
+      "iam:DeleteSigningCertificate",
+      "iam:ListSigningCertificates",
+      "iam:UpdateSigningCertificate",
+      "iam:UploadSigningCertificate"
+    ]
+    resources = ["arn:aws:iam::*:user/&{aws:username}"]
+  }
+
+  statement {
+    sid    = "AllowManageOwnSSHPublicKeys"
+    effect = "Allow"
+    actions = [
+      "iam:DeleteSSHPublicKey",
+      "iam:GetSSHPublicKey",
+      "iam:ListSSHPublicKeys",
+      "iam:UpdateSSHPublicKey",
+      "iam:UploadSSHPublicKey"
+    ]
+    resources = ["arn:aws:iam::*:user/&{aws:username}"]
+  }
+
+  statement {
+    sid    = "AllowManageOwnGitCredentials"
+    effect = "Allow"
+    actions = [
+      "iam:CreateServiceSpecificCredential",
+      "iam:DeleteServiceSpecificCredential",
+      "iam:ListServiceSpecificCredentials",
+      "iam:ResetServiceSpecificCredential",
+      "iam:UpdateServiceSpecificCredential"
+    ]
+    resources = ["arn:aws:iam::*:user/&{aws:username}"]
+  }
+
+  statement {
+    sid    = "AllowManageOwnVirtualMFADevice"
+    effect = "Allow"
+    actions = [
+      "iam:CreateVirtualMFADevice",
+      "iam:DeleteVirtualMFADevice"
+    ]
+    resources = ["arn:aws:iam::*:mfa/&{aws:username}"]
+  }
+
+  statement {
+    sid    = "AllowManageOwnUserMFA"
+    effect = "Allow"
+    actions = [
+      "iam:DeactivateMFADevice",
+      "iam:EnableMFADevice",
+      "iam:ListMFADevices",
+      "iam:ResyncMFADevice"
+    ]
+    resources = ["arn:aws:iam::*:user/&{aws:username}"]
+  }
+
+  statement {
+    sid    = "DenyAllExceptListedIfNoMFA"
+    effect = "Deny"
+    not_actions = [
+      "iam:CreateVirtualMFADevice",
+      "iam:EnableMFADevice",
+      "iam:GetUser",
+      "iam:ListMFADevices",
+      "iam:ListVirtualMFADevices",
+      "iam:ResyncMFADevice",
+      "sts:GetSessionToken"
+    ]
+    resources = ["*"]
+    condition {
+      test = "BoolIfExists"
+      variable = "aws:MultiFactorAuthPresent"
+
+      values = [
+        "false"
+      ]
+    }
+  }
 }

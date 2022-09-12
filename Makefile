@@ -78,7 +78,7 @@ pip-compile:
 	pip install pip-tools && \
 	pip-compile"
 
-# python packages vulnerabilities scanner
+# Python packages vulnerabilities scanner
 safety:
 	$(DBASH) \
 	"pip install -U pip && pip install safety && safety check -r requirements.txt"
@@ -86,4 +86,8 @@ safety:
 # Run full application code CICD locally with the exception of the push-to-registry job
 app-cicd:
 	# Run the full CICD pipeline without pushing to Docker Hub.
-	act --secret-file config/secrets.txt --artifact-server-path /tmp/artifacts
+	act -W .github/workflows/app_code_cicd.yml --secret-file config/secrets.txt --artifact-server-path /tmp/artifacts
+
+# Run full infrastructure code CICD locally
+infra-cicd:
+	act -W .github/workflows/infra_code_cicd.yml # --secret-file config/secrets.txt --artifact-server-path /tmp/artifacts
