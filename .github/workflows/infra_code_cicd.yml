@@ -26,6 +26,9 @@ jobs:
 
   validate:
     runs-on: ubuntu-latest
+    env:
+      # Allow running "terragrunt validate" without the need for a backend
+      DISABLE_INIT: true
     container:
       image: alpine/terragrunt:1.2.7
     steps:
@@ -44,7 +47,16 @@ jobs:
       # valid and internally consistent, regardless of any provided variables or
       # existing state. It is thus primarily useful for general verification of
       # reusable modules, including correctness of attribute names and value types.
-      run: terragrunt run-all validate
+
+      # -terragrunt-exclude-dir isn't working properly at the moment
+      # We need to run "terragrunt run-all" in specific folders using a bash work around.
+      # cf issue: https://github.com/gruntwork-io/terragrunt/pull/1644
+      run: |
+        # Iterate over every environment, excluding the "./_envcommon" directory
+        for dir in `find . -maxdepth 1 -mindepth 1 -type d -not -path ./_envcommon`
+        do
+          (cd "$dir" && terragrunt run-all validate)
+        done
 
     - name: Terragrunt validate
       # Emits information about the input variables that are configured with the
@@ -52,7 +64,23 @@ jobs:
       # unused inputs (inputs that are not defined as a terraform variable in the
       # corresponding module) and undefined required inputs (required terraform
       # variables that are not currently being passed in).
-      run: terragrunt validate-inputs --terragrunt-strict-validate
+
+      # --terragrunt-strict-validate: Sets strict mode for the validate-inputs command.
+      # By default, strict mode is off. When this flag is passed, strict mode is turned on.
+      # When strict mode is turned off, the validate-inputs command will only return an error
+      # if required inputs are missing from all input sources (env vars, var files, etc).
+      # When strict mode is turned on, an error will be returned if required inputs
+      # are missing OR if unused variables are passed to Terragrunt.
+
+      # -terragrunt-exclude-dir isn't working properly at the moment
+      # We need to run "terragrunt run-all" in specific folders using a bash work around.
+      # cf issue: https://github.com/gruntwork-io/terragrunt/pull/1644
+      run: |
+        # Iterate over every environment, excluding the "./_envcommon" directory
+        for dir in `find . -maxdepth 1 -mindepth 1 -type d -not -path ./_envcommon`
+        do
+          (cd "$dir" && terragrunt run-all validate-inputs --terragrunt-strict-validate)
+        done
 
   tflint:
   # - Find possible errors (like illegal instance types) for major cloud providers (AWS/Azure/GCP).

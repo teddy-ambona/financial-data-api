@@ -18,6 +18,16 @@ locals {
   environment    = "${local.env_vars.locals.environment}"
 }
 
+variable "instance_class" {
+  type        = string
+  description = "DB instance class"
+}
+
+variable "allocated_storage" {
+  type        = number
+  description = "size of the DB"
+}
+
 # Allow fetching VPC id from the state file
 data "terraform_remote_state" "sg" {
   backend = "s3"

@@ -7,10 +7,10 @@ module "postgres_db" {
   engine_version = "14.2"
 
   # DB instance which supports encryption
-  instance_class = "db.t3.micro"
+  instance_class = var.instance_class
 
   # The allocated storage in gigabytes, AWS requires a minimum of 20Gb
-  allocated_storage = 20
+  allocated_storage = var.allocated_storage
 
   db_name  = "market_data"
   username = "postgres"

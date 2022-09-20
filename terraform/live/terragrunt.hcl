@@ -6,6 +6,9 @@ locals {
 }
 
 remote_state {
+  # Allow running "terragrunt validate" without the need for a backend
+  disable_init = tobool(get_env("DISABLE_INIT", "false"))
+
   backend = "s3"
   generate = {
     path      = "terragrunt_backend.tf"

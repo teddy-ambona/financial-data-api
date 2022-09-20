@@ -21,23 +21,13 @@ include "envcommon" {
   path = "${dirname(find_in_parent_folders())}/_envcommon/data-storage.hcl"
 }
 
-
-
-
-
-
-
-
-
-
-
 # ---------------------------------------------------------------------------------------------------------------------
 # Override parameters for this environment
 # ---------------------------------------------------------------------------------------------------------------------
 
-# For production, we want to specify bigger instance classes and storage, so we specify override parameters here. These
+# For development, we want to specify smaller instance classes and storage, so we specify override parameters here. These
 # inputs get merged with the common inputs from the root and the envcommon terragrunt.hcl
 inputs = {
-  instance_class    = "db.t2.medium"
-  allocated_storage = 100
+  instance_class    = "db.t3.micro"
+  allocated_storage = 20
 }
