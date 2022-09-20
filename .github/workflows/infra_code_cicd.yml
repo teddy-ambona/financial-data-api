@@ -7,12 +7,12 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: alpine/terragrunt:1.2.7
+    defaults:
+      run:
+        working-directory: terraform/live
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-
-    - name: cd into terraform directory
-      run: cd terraform/live
 
     # Checks if all Terraform configuration files are in a canonical format. Both
     # configuration files (.tf) and variables files (.tfvars) are updated.
@@ -31,14 +31,14 @@ jobs:
       DISABLE_INIT: true
     container:
       image: alpine/terragrunt:1.2.7
+    defaults:
+      run:
+        working-directory: terraform/live
     steps:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: cd into terraform directory
-      run: cd terraform/live
-
-    - name: Terraform validate recursively
+    - name: Terragrunt validate recursively
       # Validate the configuration files in a directory, referring only to the
       # configuration and not accessing any remote services such as remote state,
       # provider APIs, etc.
@@ -56,9 +56,10 @@ jobs:
         for dir in `find . -maxdepth 1 -mindepth 1 -type d -not -path ./_envcommon`
         do
           (cd "$dir" && terragrunt run-all validate)
+
         done
 
-    - name: Terragrunt validate
+    - name: Terragrunt validate-inputs recursively
       # Emits information about the input variables that are configured with the
       # given terragrunt configuration. Specifically, this command will print out
       # unused inputs (inputs that are not defined as a terraform variable in the
@@ -131,7 +132,9 @@ jobs:
           additional_args: --minimum-severity HIGH
 
   infra-cost:
-  # <Describe here>
+  # Infracost shows cloud cost estimates for Terraform.
+  # It lets DevOps, SRE and engineers see a cost breakdown and understand
+  # costs before making changes, either in the terminal or pull requests.
     needs: [tfsec]
     runs-on: ubuntu-latest
     steps:

@@ -90,4 +90,4 @@ app-cicd:
 
 # Run full infrastructure code CICD locally
 infra-cicd:
-	act -W .github/workflows/infra_code_cicd.yml # --secret-file config/secrets.txt --artifact-server-path /tmp/artifacts
+	act -W .github/workflows/infra_code_cicd.yml
