@@ -91,12 +91,21 @@ jobs:
 
   tfsec:
   # Static analysis of terraform templates to spot potential security issues
-      runs-on: ubuntu-latest
-      steps:
-        - name: Checkout
-          uses: actions/checkout@v2
+    needs: [format, validate, tflint]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
 
-        - name: tfsec
-          uses: aquasecurity/tfsec-action@v1.0.0
-          with:
-            additional_args: --minimum-severity HIGH
+      - name: tfsec
+        uses: aquasecurity/tfsec-action@v1.0.0
+        with:
+          additional_args: --minimum-severity HIGH
+
+  infra-cost:
+  # <Describe here>
+    needs: [tfsec]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2

@@ -158,6 +158,8 @@ terragrunt plan
 terragrunt apply
 ```
 
+Note that Terraform stores the secrets in plain text in the `.tfstate` file, that is why is it not recommended to store `.tfstate` in Github but rather in S3 or other shared storage.
+
 The `demo_admin_user` credentials can be found using the following commands:
 
 ```bash
@@ -168,11 +170,30 @@ terragrunt state pull | jq '.resources[] | select(.type == "aws_iam_user_login_p
 terragrunt state pull | jq '.resources[] | select(.type == "aws_iam_access_key") | .instances[].attributes | with_entries(select(.key|contains("id", "secret")))'
 ```
 
-You can now delete root access keys and replace the access keys in your `~/.aws/credentials` (or `%UserProfile%\.aws\credentials` on Windows) with the above `demo_admin_user` keys.
+You can now delete root access keys via the IAM dashboard(cf below)
 
-Upon first login in the web console you will be prompted to change your password, once done you will have access to the web console but all features will either appear empty or will display `API error` until you set up the MFA for the user.
+<img src="../docs/img/delete_root_user_access_key.png" width="350"/>
 
-Note that Terraform stores the secrets in plain text in the `.tfstate` file, that is why is it not recommended to store `.tfstate` in Github but rather in S3 or other shared storage.
+Also replace the access keys in your `~/.aws/credentials` (or `%UserProfile%\.aws\credentials` on Windows) with the above `demo_admin_user` keys.
+
+Upon first login as `demo_admin_user` in the web console you will be prompted to change your password, once done you will have access to the web console but all features will either appear empty or will display `API error` until you set up the MFA for the user.
+
+To use the AWS CLI you will need to call the `aws sts get-session-token` [documentation here](https://aws.amazon.com/premiumsupport/knowledge-center/authenticate-mfa-cli/) and store this profile (you need to refresh this profile each time the token expires) in your `~/.aws/credentials`:
+
+in `~/.aws/credentials`:
+
+```json
+[default]
+aws_access_key_id=<your access key id>
+aws_secret_access_key=<your secret access key>
+
+[mfa]
+aws_access_key_id=<your access key id>
+aws_secret_access_key=<your secret access key>
+aws_session_token=<your session token>****
+```
+
+>Good to know: I personally use the [aws-mfa](https://github.com/broamski/aws-mfa) tool that automates the painful and clunky process of obtaining temporary credentials from the AWS Security Token Service and updating your AWS Credentials.
 
 ### 3 - Create VPC
 
@@ -227,6 +248,8 @@ terragrunt apply
 ```
 
 ### 6 - Create DB schema and populate data
+
+We have now instantiated a RDS DB on the private subnet which means connections from/to the internet are not enabled. Even though it would be practical we do not whitelist public IP as this is bad practice, RDS should remain on a private subnet. To execute SQL queries on the DB instance we can SSH onto an EC2 instance and login from there.
 
 Let's use the following command to create a schema and populate our DB with the mock dataset
 

@@ -11,7 +11,7 @@ resource "aws_kms_key" "mykey" {
 
 # Create S3 bucket for storing the .tfstate file
 module "s3_bucket" {
-  source = "terraform-aws-modules/s3-bucket/aws"
+  source  = "terraform-aws-modules/s3-bucket/aws"
   version = "~> 3.4"
 
   bucket = "financial-data-api-demo-state"

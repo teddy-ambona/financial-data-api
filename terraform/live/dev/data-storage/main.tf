@@ -3,11 +3,11 @@ module "postgres_db" {
   version    = "5.0.3"
   identifier = "${local.environment}-demodb"
 
-  engine            = "postgres"
-  engine_version    = "14.2"
+  engine         = "postgres"
+  engine_version = "14.2"
 
   # DB instance which supports encryption
-  instance_class    = "db.t3.micro"
+  instance_class = "db.t3.micro"
 
   # The allocated storage in gigabytes, AWS requires a minimum of 20Gb
   allocated_storage = 20

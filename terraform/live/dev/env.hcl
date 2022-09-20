@@ -7,5 +7,5 @@ locals {
   aws_account_id      = "<YOUR_AWS_ACCOUNT_ID>"
   environment         = "dev"
   remote_state_bucket = "financial-data-api-demo-state"
-  application = "api-demo"
+  application         = "api-demo"
 }

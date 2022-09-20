@@ -169,7 +169,7 @@ data "aws_iam_policy_document" "mfa_document" {
     ]
     resources = ["*"]
     condition {
-      test = "BoolIfExists"
+      test     = "BoolIfExists"
       variable = "aws:MultiFactorAuthPresent"
 
       values = [
