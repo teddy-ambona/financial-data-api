@@ -1,12 +1,11 @@
-FROM python:3.8.13
+# Fetch a compatible version with 3.8.* including the latest patch release
+FROM python:3.8
 
 RUN groupadd -r user && useradd -r -g user app
 
 # Upgrade packages to fix vulnerabilities found with Trivy
 RUN apt-get update -y && apt-get install -y \
-    openssl \
-    libssl-dev \
-    libssl1.1
+    libexpat1>=2.2.10-2+deb11u4
 
 RUN pip install pip -U && pip install pip-tools
 

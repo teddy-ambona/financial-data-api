@@ -20,7 +20,7 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-This repo is a template for dockerized flask applications(REST API). This simplified API exposes GET endpoints that allow you to pull stock prices and trading indicators. You will find the following implementation:
+This repo is a demo project for dockerized flask applications(REST API). This simplified API exposes GET endpoints that allow you to pull stock prices and trading indicators. You will find the following implementation:
 
 - Terraform (Iaac) deployment on AWS
 - How to keep your terraform code DRY with Terragrunt
@@ -115,7 +115,20 @@ $ curl -G -d 'interval=1' -d 'frequency=Annual' http://127.0.0.1:5000/stocks/tim
 .
 ├── .github
 │   ├── workflow
-│   │   └── cicd.yaml
+│   │   │── app_code_cicd.yml
+│   │   └── infra_code_cicd.yml
+├── app
+├── docs
+├── terraform
+├── .gitignore
+├── Makefile
+├── README.md
+```
+
+In `./app`
+
+```text
+.
 ├── config
 │   ├── .yamllint
 │   └── api_settings
@@ -127,11 +140,6 @@ $ curl -G -d 'interval=1' -d 'frequency=Annual' http://127.0.0.1:5000/stocks/tim
 │       │   └── config.yaml
 │       └── test
 │           └── config.yaml
-├── docs
-│   └── img
-│       ├── CICD.png
-│       ├── architecture.png
-│       └── four-phase-test.gif
 ├── src
 │   ├── __init__.py
 │   ├── app.py
@@ -152,13 +160,32 @@ $ curl -G -d 'interval=1' -d 'frequency=Annual' http://127.0.0.1:5000/stocks/tim
 │       ├── __init__.py
 │       └── test_helpers.py
 ├── .dockerignore
-├── .gitignore
 ├── docker-compose.yaml
 ├── Dockerfile
 ├── Makefile
-├── README.md
 ├── requirements.in
 ├── requirements.txt
+```
+
+In `./terraform`
+
+```text
+.
+├── live
+│   ├── _envcommon
+│   │   └── <resource>.hcl
+│   ├── global
+│   │   ├── s3
+│   │   └── iam
+│   ├── <environment>
+│   │   ├── env.hcl
+│   │   └── <resource>
+│   │       ├── main.tf
+│   │       ├── README.md
+│   │       └── terragrunt.hcl
+│   └── .tflint.hcl
+├── Makefile
+└── README.md
 ```
 
 ## CICD overview
@@ -188,11 +215,11 @@ Install [act](https://github.com/nektos/act) to run the jobs on your local machi
 Example:
 
 ```bash
-act --secret-file config/secrets.txt --artifact-server-path /tmp/artifacts  # Run the full CICD pipeline
-act -j pydocstyle --secret-file config/secrets.txt --artifact-server-path /tmp/artifacts # Run specific job
+act --secret-file secrets.txt --artifact-server-path /tmp/artifacts  # Run the full CICD pipeline
+act -j pydocstyle --secret-file secrets.txt --artifact-server-path /tmp/artifacts # Run specific job
 ```
 
-In `config/secrets.txt`:
+In `secrets.txt`:
 
 ```bash
 GITHUB_TOKEN=<YOUR_PAT_TOKEN>

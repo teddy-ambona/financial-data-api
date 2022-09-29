@@ -150,6 +150,7 @@ This module performs the following operations:
 - create a login password for `demo_admin_user`
 - Enforce MFA for the admin group
 - Strenghten the account passwords policy
+- Rotate credentials regularly (90 days)
 
 ```bash
 cd terraform/live/global/iam
