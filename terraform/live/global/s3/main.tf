@@ -1,13 +1,17 @@
-resource "aws_kms_key" "mykey" {
-  description             = "This key is used to encrypt bucket objects"
-  deletion_window_in_days = 10
+# >>> FOR DEV PURPOSE ONLY AS IT COSTS LESS MONEY, SHOULD BE UNCOMMENTED <<<
+# resource "aws_kms_key" "mykey" {
+#   description             = "This key is used to encrypt bucket objects"
+#   deletion_window_in_days = 10
 
-  tags = {
-    Terraform   = "true"
-    Environment = "global"
-  }
+#   # Automatically rotate key every year
+#   enable_key_rotation = true
 
-}
+#   tags = {
+#     Terraform   = "true"
+#     Environment = "global"
+#   }
+
+# }
 
 # Create S3 bucket for storing the .tfstate file
 module "s3_bucket" {
@@ -34,22 +38,31 @@ module "s3_bucket" {
   # cf https://aquasecurity.github.io/tfsec/v1.27.1/checks/aws/s3/block-public-policy/
   block_public_policy = true
 
-  # Ensure that your state files, and any secrets they may contain, are always encrypted on disk when stored in S3.
+  # >>> FOR DEV PURPOSE ONLY AS IT COSTS LESS MONEY, SHOULD BE REMOVED <<<
   server_side_encryption_configuration = {
     rule = {
-      # Amazon S3 Bucket Keys reduce the request costs of Amazon S3 server-side encryption (SSE) with
-      # AWS Key Management Service (KMS) by up to 99% by decreasing the request traffic from S3 to KMS
-      # cf https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucket-key.html
-      bucket_key_enabled = true
-
-      # S3 encryption should use Customer Managed Keys
-      # cf https://aquasecurity.github.io/tfsec/v1.27.1/checks/aws/s3/encryption-customer-key/
       apply_server_side_encryption_by_default = {
-        kms_master_key_id = aws_kms_key.mykey.arn
-        sse_algorithm     = "aws:kms"
+        sse_algorithm     = "AES256"
       }
     }
   }
+
+  # # Ensure that your state files, and any secrets they may contain, are always encrypted on disk when stored in S3.
+  # server_side_encryption_configuration = {
+  #   rule = {
+  #     # Amazon S3 Bucket Keys reduce the request costs of Amazon S3 server-side encryption (SSE) with
+  #     # AWS Key Management Service (KMS) by up to 99% by decreasing the request traffic from S3 to KMS
+  #     # cf https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucket-key.html
+  #     bucket_key_enabled = true
+
+  #     # S3 encryption should use Customer Managed Keys
+  #     # cf https://aquasecurity.github.io/tfsec/v1.27.1/checks/aws/s3/encryption-customer-key/
+  #     apply_server_side_encryption_by_default = {
+  #       kms_master_key_id = aws_kms_key.mykey.arn
+  #       sse_algorithm     = "aws:kms"
+  #     }
+  #   }
+  # }
 
   # Enable versioning so we can see the full revision history of our state files
   versioning = {

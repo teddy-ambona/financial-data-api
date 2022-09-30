@@ -1,24 +1,22 @@
 # financial-data-api &middot; ![ci](https://github.com/teddy-ambona/financial-data-api/actions/workflows/ci.yml/badge.svg)
 
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Prerequisites](#prerequisites)
-- [Quickstart](#quickstart)
-- [Project file structure](#project-file-structure)
-- [CICD overview](#cicd-overview)
-- [Running the CICD pipeline locally](#running-the-cicd-pipeline-locally)
-- [Docker image build pattern](#docker-image-build-pattern)
-  - [SemVer2](#semver2)
-  - [Version bump](#version-bump)
-- [Testing framework](#testing-framework)
-  - [GIVEN-WHEN-THEN (Martin Fowler)](#given-when-then-martin-fowler)
-  - [Four-Phase Test (Gerard Meszaros)](#four-phase-test-gerard-meszaros)
-- [Deployment to AWS with Terraform](#deployment-to-aws-with-terraform)
-  - [Keep your code DRY with Terragrunt](#keep-your-code-dry-with-terragrunt)
-  - [Best practices](#best-practices)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+- [1 - Prerequisites](#1---prerequisites)
+- [2 - Quickstart](#2---quickstart)
+- [3 - Project file structure](#3---project-file-structure)
+- [4 - CICD](#4---cicd)
+  - [A - App CICD overview](#a---app-cicd-overview)
+  - [B - Infra CICD overview](#b---infra-cicd-overview)
+  - [C - Running the CICD pipeline locally](#c---running-the-cicd-pipeline-locally)
+- [5 - Docker image build pattern](#5---docker-image-build-pattern)
+  - [A - SemVer2](#a---semver2)
+  - [B - Version bump](#b---version-bump)
+- [6 - Testing framework](#6---testing-framework)
+  - [A - GIVEN-WHEN-THEN (Martin Fowler)](#a---given-when-then-martin-fowler)
+  - [B - Four-Phase Test (Gerard Meszaros)](#b---four-phase-test-gerard-meszaros)
+- [7 - Deployment to AWS with Terraform](#7---deployment-to-aws-with-terraform)
+  - [A - Keep your code DRY with Terragrunt](#a---keep-your-code-dry-with-terragrunt)
+  - [B - Best practices](#b---best-practices)
+  - [C -](#c--)
 
 This repo is a demo project for dockerized flask applications(REST API). This simplified API exposes GET endpoints that allow you to pull stock prices and trading indicators. You will find the following implementation:
 
@@ -33,9 +31,7 @@ This repo is a demo project for dockerized flask applications(REST API). This si
 - Flask-SQLAlchemy with blueprints implementation
 - Dependency injection
 
-<img src="./docs/img/architecture.png" width="700"/>
-
-## Prerequisites
+## 1 - Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/)
 - [Docker Compose CLI plugin](https://docs.docker.com/compose/install/compose-plugin/)
@@ -47,7 +43,7 @@ This repo is a demo project for dockerized flask applications(REST API). This si
 
 > The API doesn't require python installed on your machine.
 
-## Quickstart
+## 2 - Quickstart
 
 Run the following commands to:
 
@@ -109,7 +105,7 @@ $ curl -G -d 'interval=1' -d 'frequency=Annual' http://127.0.0.1:5000/stocks/tim
 ]
 ```
 
-## Project file structure
+## 3 - Project file structure
 
 ```text
 .
@@ -188,7 +184,13 @@ In `./terraform`
 └── README.md
 ```
 
-## CICD overview
+ `<resource>` can be "vpc" or "security-groups" for instance.
+
+## 4 - CICD
+
+### A - App CICD overview
+
+<img src="./docs/img/architecture.png" width="700"/>
 
 <img src="./docs/img/CICD.png" width="700"/>
 <br></br>
@@ -208,7 +210,14 @@ In `./terraform`
 This is ensured using `if: ${{ !env.ACT }}` in the `push-to-registry` job.
 Running this locally means there will be a conflicting image tag when the Github Actions CICD will try and run it a second time.
 
-## Running the CICD pipeline locally
+### B - Infra CICD overview
+
+The workflow will:
+
+- generate a plan for every pull requests
+- apply the configuration when you update the main branch
+
+### C - Running the CICD pipeline locally
 
 Install [act](https://github.com/nektos/act) to run the jobs on your local machine.
 
@@ -239,7 +248,7 @@ make tests
 make app-cicd  # Run the full CICD pipeline without pushing to Docker Hub
 ```
 
-## Docker image build pattern
+## 5 - Docker image build pattern
 
 The requirements are:
 
@@ -249,7 +258,7 @@ The requirements are:
 
 - The image tag should follow [SemVer specifications](https://semver.org/) which is `MAJOR.MINOR.PATCH-<BRANCH NAME>.dev.<COMMIT SHA>` for dev versions and `MAJOR.MINOR.PATCH` for production use.
 
-### SemVer2
+### A - SemVer2
 
 |   Branch  | Commit # | Image Version | Image Tag  |
 |:---------:|:--------:|:-------------:|:----------:|
@@ -259,13 +268,13 @@ The requirements are:
 
 > The [docker/metadata-action@v4](https://github.com/docker/metadata-action#semver) task can automate this but it requires using git tags which can be a bit cumbersome as it requires an update for each commit. So I preferred reimplementing something straightforward that uses the git branch name and commit SHA to form the image tag.
 
-### Version bump
+### B - Version bump
 
 Each PR should contain a version of the `IMAGE_VERSION` in `.github/workflows/ci.yml`.
 
-## Testing framework
+## 6 - Testing framework
 
-### [GIVEN-WHEN-THEN](https://martinfowler.com/bliki/GivenWhenThen.html) (Martin Fowler)
+### A - [GIVEN-WHEN-THEN](https://martinfowler.com/bliki/GivenWhenThen.html) (Martin Fowler)
 
 **GIVEN** - Describes the state of the world before you begin the behavior you're specifying in this scenario. You can think of it as the pre-conditions to the test.
 
@@ -273,7 +282,7 @@ Each PR should contain a version of the `IMAGE_VERSION` in `.github/workflows/ci
 
 **THEN** - Changes you expect due to the specified behavior.
 
-### [Four-Phase Test](http://xunitpatterns.com/Four%20Phase%20Test.html) (Gerard Meszaros)
+### B - [Four-Phase Test](http://xunitpatterns.com/Four%20Phase%20Test.html) (Gerard Meszaros)
 
 <img src="./docs/img/four-phase-test.png" width="700"/>
 
@@ -282,7 +291,7 @@ Each PR should contain a version of the `IMAGE_VERSION` in `.github/workflows/ci
 
 For integration testing, the *Setup* phase consists in truncating and repopulating the DB.
 
-## Deployment to AWS with Terraform
+## 7 - Deployment to AWS with Terraform
 
 IMPORTANT: Following these instructions will deploy code into your AWS account. All of this qualifies for the AWS Free Tier, but if you've already used up your credits, running this code may cost you money. Also this repo is meant to be deployed to your sandbox environment.
 
@@ -290,7 +299,7 @@ IMPORTANT: Following these instructions will deploy code into your AWS account. 
 
 Also check [why choosing Terraform over other configuration management and provisioning tools](https://blog.gruntwork.io/why-we-use-terraform-and-not-chef-puppet-ansible-saltstack-or-cloudformation-7989dad2865c). TLDR; Terraform is an open source, cloud-agnostic provisioning tool that supports immutable infrastructure, a declarative language, and a client-only architecture.
 
-### Keep your code DRY with Terragrunt
+### A - Keep your code DRY with Terragrunt
 
 Terragrunt is a thin wrapper for Terraform that provides extra tools for working with multiple Terraform modules. https://www.gruntwork.io
 
@@ -298,6 +307,15 @@ Sample for reference: https://github.com/gruntwork-io/terragrunt-infrastructure-
 
 Teragrunt generated files start with the prefix "terragrunt_" and are ignored in the `.gitignore` file to prevent them from being accidentally commmitted.
 
-### Best practices
+### B - Best practices
 
 I strongly recommend going through the [terraform best practices](https://github.com/ozbillwang/terraform-best-practices) before exploring this repo.
+
+>> 5 pillars for architecture solution(cf Stephan Maarek):
+	- Cost
+	- Performance
+	- Reliability
+	- Security
+	- Operational excellence (How to migrate from clunky app)
+
+### C - 

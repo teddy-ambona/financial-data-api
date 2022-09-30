@@ -1,19 +1,22 @@
 # Terraform deployment
 
-- [A - [Optional] If you have a new AWS account](#a---optional-if-you-have-a-new-aws-account)
-- [B - Module dependencies](#b---module-dependencies)
-- [C - Modules deployment](#c---modules-deployment)
-  - [1 - Create S3 bucket and Dynamo DB for state lock](#1---create-s3-bucket-and-dynamo-db-for-state-lock)
-  - [2 - Create IAM admin group and add admin user to it](#2---create-iam-admin-group-and-add-admin-user-to-it)
-  - [3 - Create VPC](#3---create-vpc)
-  - [4 - Create security groups (firewalls)](#4---create-security-groups-firewalls)
-  - [5 - Create Postgres DB](#5---create-postgres-db)
-  - [6 - Create DB schema and populate data](#6---create-db-schema-and-populate-data)
-  - [7 - Deploy serverless web-app with ECS and Fargate](#7---deploy-serverless-web-app-with-ecs-and-fargate)
+- [1 - [Optional] If you have a new AWS account](#1---optional-if-you-have-a-new-aws-account)
+- [2 - Module dependencies](#2---module-dependencies)
+- [3 - Modules deployment](#3---modules-deployment)
+  - [A - Create S3 bucket and Dynamo DB for state lock](#a---create-s3-bucket-and-dynamo-db-for-state-lock)
+  - [B - Create IAM admin group and add admin user to it](#b---create-iam-admin-group-and-add-admin-user-to-it)
+  - [C - Create VPC](#c---create-vpc)
+  - [D - Create security groups (firewalls)](#d---create-security-groups-firewalls)
+  - [E - Create Postgres DB](#e---create-postgres-db)
+  - [F - Create DB schema and populate data](#f---create-db-schema-and-populate-data)
+  - [G - Deploy serverless web-app](#g---deploy-serverless-web-app)
+    - [AWS App runner](#aws-app-runner)
+
+The best practice is to apply changes through CICD pipeline only. However for bootstraping your terraform backend and setting up your first IAM admin user you will need to apply changes outside a CICD Pipeline, this is what is shown in 1, 3.A & 3.B.
 
 We segment environments(dev/stage/prod) using separated directories. Each directory has its own `terraform.state` file stored in s3, this is a best practice set to limit damages in case in errors. Also, the user who is running the terraform code does not need permission for the entire infrastructure but only for the resources he is trying to update.
 
-## A - [Optional] If you have a new AWS account
+## 1 - [Optional] If you have a new AWS account
 
 If you already have your remote backend setup you can skip this part and jump to [3 - Create IAM user, role and policies](#2---create-iam-admin-group-and-add-admin-user-to-it)
 
@@ -41,7 +44,7 @@ aws_access_key_id=<your access key id>
 aws_secret_access_key=<your secret access key>
 ```
 
-## B - Module dependencies
+## 2 - Module dependencies
 
 In the `terragrunt.hcl` of each module, we declare the dependencies on other modules so that terragrunt knows in what order to create or destroy the resources when running `terragrunt run-all apply` or `terragrunt run-all destroy`. If any of the modules fail to deploy, then Terragrunt will not attempt to deploy the modules that depend on them(cf [documentation](https://terragrunt.gruntwork.io/docs/features/execute-terraform-commands-on-multiple-modules-at-once/#dependencies-between-modules)).
 
@@ -59,9 +62,9 @@ terragrunt graph-dependencies | dot -Tsvg > graph.svg
 
 <img src="../docs/img/module_dependencies.png" width="250"/>
 
-## C - Modules deployment
+## 3 - Modules deployment
 
-### 1 - Create S3 bucket and Dynamo DB for state lock
+### A - Create S3 bucket and Dynamo DB for state lock
 
 Run the below commands to:
 
@@ -140,7 +143,11 @@ Successfully configured the backend "s3"! Terraform will automatically
 use this backend unless the backend configuration changes.
 ```
 
-### 2 - Create IAM admin group and add admin user to it
+> Pro tip: You can run apply with the -lock-timeout=<TIME> parameter to tell Terraform to wait up to TIME for a lock to be released (e.g., -lock-timeout=10m will wait for 10 minutes), this is particularly useful if other developers are trying to update the infrastructure at the same time.
+
+### B - Create IAM admin group and add admin user to it
+
+Because nobody wants to log in to the AWS web console, go to IAM, and click some buttons in the UI to manage IAM users/groups/roles (unless you are learning and it's the first time you use AWS) we will define IAM resources in this module.
 
 In this section, we assume that the tfstate can be stored in the bucket `financial-data-api-demo-state` under the key `global/iam/terraform.tfstate`
 
@@ -196,7 +203,7 @@ aws_session_token=<your session token>****
 
 >Good to know: I personally use the [aws-mfa](https://github.com/broamski/aws-mfa) tool that automates the painful and clunky process of obtaining temporary credentials from the AWS Security Token Service and updating your AWS Credentials.
 
-### 3 - Create VPC
+### C - Create VPC
 
 [cf terraform-aws-modules/vpc/aws](https://github.com/terraform-aws-modules/terraform-aws-vpc):
 
@@ -208,14 +215,7 @@ This module will:
 - Create a NAT gateway
 - Create a route table association
 
-```bash
-cd terraform/live/dev/vpc
-
-terragrunt plan
-terragrunt apply
-```
-
-### 4 - Create security groups (firewalls)
+### D - Create security groups (firewalls)
 
 [cf terraform-aws-security-group](https://github.com/terraform-aws-modules/terraform-aws-security-group)
 
@@ -224,14 +224,7 @@ This module will:
 - Create a security group for the web-server
 - Create a security group for the database
 
-```bash
-cd terraform/live/dev/security-groups
-
-terragrunt plan
-terragrunt apply
-```
-
-### 5 - Create Postgres DB
+### E - Create Postgres DB
 
 [cf terraform-aws-modules/rds/aws](https://registry.terraform.io/modules/terraform-aws-modules/rds/aws/latest)
 
@@ -241,14 +234,7 @@ This module will:
 - Attach the previously created security-group to the DB
 - Associate DB to private subnets in order to avoid connection from the internet
 
-```bash
-cd terraform/live/dev/data-storage
-
-terragrunt plan
-terragrunt apply
-```
-
-### 6 - Create DB schema and populate data
+### F - Create DB schema and populate data
 
 We have now instantiated a RDS DB on the private subnet which means connections from/to the internet are not enabled. Even though it would be practical we do not whitelist public IP as this is bad practice, RDS should remain on a private subnet. To execute SQL queries on the DB instance we can SSH onto an EC2 instance and login from there.
 
@@ -256,7 +242,6 @@ Let's use the following command to create a schema and populate our DB with the 
 
 Using our AWS "admin" user keys
 
-```bash
-```
+### G - Deploy serverless web-app
 
-### 7 - Deploy serverless web-app with ECS and Fargate
+#### AWS App runner
