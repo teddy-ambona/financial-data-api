@@ -20,16 +20,33 @@
 
 This repo is a demo project for dockerized flask applications(REST API). This simplified API exposes GET endpoints that allow you to pull stock prices and trading indicators. You will find the following implementation:
 
-- Terraform (Iaac) deployment on AWS
-- How to keep your terraform code DRY with Terragrunt
-- Github Actions CICD
-- Docker image build and distribution pattern
+**Application code:**
+
+- Github Actions CICD:
+  - static analysis: flake8, pydocstyle
+  - Image misconfiguration/vulnerabilities (Trivy), passing artifacts between jobs
+  - Testing patterns with Pytests (unit / integration)
+  - Docker image build and distribution pattern
 - Docker PostgreSQL DB setup for local testing
 - Services configuration with Docker Compose
 - Makefile template
-- Testing patterns(unit & integration with Pytest)
-- Flask-SQLAlchemy with blueprints implementation
+- Flask blueprints
+- Flask-SQLAlchemy implementation
 - Dependency injection
+
+**Infrastructure code:**
+
+- Multi AZ serverless architecture: AWS Organizations (dev/ staging/prod OUs), VPC, Security-groups, Application Load Balancer, RDS DB, S3, IAM configuration (RBAC), AWS Cognito, AWS Secrets Manager
+- 3 serverless methods are showcased for deploying the web-server:
+  - AWS App runner
+  - ECS with Fargate ASG
+  - EKS with Fargate ASG
+- Terragrunt patterns to keep the code DRY across environments (dev, staging, prod)
+- Security scanner (tfsec), static analysis to enforce best practices (tflint, validate, fmt)
+- Blue/green deployment triggered from Git CI/CD
+- Automated infrastructure cost estimation (with Infracost)
+- Automated architecture diagrams from Terraform code
+- Terraform remote backend bootstrap
 
 ## 1 - Prerequisites
 
@@ -45,14 +62,16 @@ This repo is a demo project for dockerized flask applications(REST API). This si
 
 ## 2 - Quickstart
 
+### A - Run local stack
+
 Run the following commands to:
 
 - Build the Docker image
-- Run the app and db services
+- Run the app and db services locally
 - Populate DB with TSLA and AMZN stock prices
 
 ```bash
-make build up
+cd app && make build up
 ```
 
 Verify the API is running:
@@ -105,7 +124,13 @@ $ curl -G -d 'interval=1' -d 'frequency=Annual' http://127.0.0.1:5000/stocks/tim
 ]
 ```
 
+### B - Deploy the infrastructure in AWS
+
+A step by step guide to IaC is accessible in [terraform/README.md](terraform/README.md)
+
 ## 3 - Project file structure
+
+The best practice is for infrastructure and application code to sit in different repos, however I wanted to make this demo project self-contained.
 
 ```text
 .
@@ -180,11 +205,14 @@ In `./terraform`
 │   │       ├── README.md
 │   │       └── terragrunt.hcl
 │   └── .tflint.hcl
+├── modules
 ├── Makefile
 └── README.md
 ```
 
  `<resource>` can be "vpc" or "security-groups" for instance.
+
+`live` and `modules` folders should sit in 2 separate git repos where `live` contains the currently deployed infratructure whilst `modules` should contain user defined modules. In this repo I only reuse existing terraform modules so `live` and `modules` folders are just placeholders. The idea behind having `live` vs `modules` git repos is to make sure you can point at a versioned module in dev/stage/prod and reduce the risk of impacting prod.
 
 ## 4 - CICD
 
@@ -212,7 +240,16 @@ Running this locally means there will be a conflicting image tag when the Github
 
 ### B - Infra CICD overview
 
-The workflow will:
+- **format:** Check if all Terraform configuration files are in a canonical format
+- **validate:** Verify whether a configuration is syntactically valid and internally consistent
+- **tflint:**
+  - Find possible errors (like illegal instance types)
+  - Warn about deprecated syntax, unused declarations
+  - Enforce best practices, naming conventions
+- **tfsec:** Static analysis of terraform templates to spot potential security issues
+- **infra-cost:** Infracost shows cloud cost estimates for Terraform
+
+TODO: The workflow should also:
 
 - generate a plan for every pull requests
 - apply the configuration when you update the main branch
@@ -224,19 +261,18 @@ Install [act](https://github.com/nektos/act) to run the jobs on your local machi
 Example:
 
 ```bash
-act --secret-file secrets.txt --artifact-server-path /tmp/artifacts  # Run the full CICD pipeline
-act -j pydocstyle --secret-file secrets.txt --artifact-server-path /tmp/artifacts # Run specific job
+make app-cicd  # Run the full app CICD pipeline without pushing to Docker Hub
+infra-cicd  # Run the full infrastructure CICD pipeline without applying changes
 ```
 
-In `secrets.txt`:
+These commands require `secrets.txt` with this content:
 
 ```bash
 GITHUB_TOKEN=<YOUR_PAT_TOKEN>
 DOCKERHUB_USERNAME=<YOUR_DOCKERHUB_USERNAME>
 DOCKERHUB_TOKEN=<YOUR_DOCKERHUB_TOKEN>
+INFRACOST_API_KEY=<YOUR_INFRACOST_API_KEY>
 ```
-
-`--artifact-server-path` has to be specified as the workflow is using `actions/upload-artifact` and `actions/download-artifact`([cf issue](https://github.com/nektos/act/issues/329#issuecomment-1187246629))
 
 Optionally you could also run pipeline jobs using the Makefile directly.
 
@@ -245,8 +281,9 @@ Example:
 ```bash
 make pydocstyle
 make tests
-make app-cicd  # Run the full CICD pipeline without pushing to Docker Hub
 ```
+
+Some jobs such as `image-vulnerabilities` can be run in isolation using the act `-j <job-name>` command (example `-j image-vulnerabilities`).
 
 ## 5 - Docker image build pattern
 

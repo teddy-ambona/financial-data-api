@@ -164,7 +164,7 @@ cython_debug/
 .devcontainer
 
 # Secret variables
-config/secrets.txt
+secrets.txt
 
 # Local .terraform directories
 **/.terraform/*
@@ -204,5 +204,8 @@ terraform.rc
 # ignore terraform lock
 .terraform.lock.hcl
 
-# Terragrun generated files
+# Terragrunt generated files
 terragrunt_*
+
+# Infracost generated files
+.infracost
