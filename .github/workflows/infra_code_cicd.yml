@@ -170,6 +170,7 @@ jobs:
           TF_ROOT=terraform/live/${{ matrix.env }}
           infracost breakdown --path=${TF_ROOT} \
                               --format=json \
+                              --show-skipped \
                               --out-file=/tmp/infracost.json
 
       # Posts a comment to the PR using the 'update' behavior.
