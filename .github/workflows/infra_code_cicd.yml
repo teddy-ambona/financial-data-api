@@ -3,139 +3,11 @@ name: Infrastructure code CICD Pipeline
 on: [push]
 
 jobs:
-  format:
-    runs-on: ubuntu-latest
-    container:
-      image: alpine/terragrunt:1.2.7
-    defaults:
-      run:
-        working-directory: terraform/live
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-
-    # Checks if all Terraform configuration files are in a canonical format. Both
-    # configuration files (.tf) and variables files (.tfvars) are updated.
-    # JSON files (.tf.json or .tfvars.json) are not checked.
-    - name: Terraform fmt
-      run: terraform fmt -check -diff=true -recursive
-
-    # Recursively find terragrunt.hcl files and check if they are written in a canonical format.
-    - name: Terragrunt hclfmt
-      run: terragrunt hclfmt --terragrunt-check --terragrunt-log-level debug
-
-  validate:
-    runs-on: ubuntu-latest
-    env:
-      # Allow running "terragrunt validate" without the need for a backend
-      DISABLE_INIT: true
-    container:
-      image: alpine/terragrunt:1.2.7
-    defaults:
-      run:
-        working-directory: terraform/live
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-
-    - name: Terragrunt validate recursively
-      # Validate the configuration files in a directory, referring only to the
-      # configuration and not accessing any remote services such as remote state,
-      # provider APIs, etc.
-
-      # Validate runs checks that verify whether a configuration is syntactically
-      # valid and internally consistent, regardless of any provided variables or
-      # existing state. It is thus primarily useful for general verification of
-      # reusable modules, including correctness of attribute names and value types.
-
-      # -terragrunt-exclude-dir isn't working properly at the moment
-      # We need to run "terragrunt run-all" in specific folders using a bash work around.
-      # cf issue: https://github.com/gruntwork-io/terragrunt/pull/1644
-      run: |
-        # Iterate over every environment, excluding the "./_envcommon" directory
-        for dir in `find . -maxdepth 1 -mindepth 1 -type d -not -path ./_envcommon`
-        do
-          (cd "$dir" && terragrunt run-all validate)
-
-        done
-
-    - name: Terragrunt validate-inputs recursively
-      # Emits information about the input variables that are configured with the
-      # given terragrunt configuration. Specifically, this command will print out
-      # unused inputs (inputs that are not defined as a terraform variable in the
-      # corresponding module) and undefined required inputs (required terraform
-      # variables that are not currently being passed in).
-
-      # --terragrunt-strict-validate: Sets strict mode for the validate-inputs command.
-      # By default, strict mode is off. When this flag is passed, strict mode is turned on.
-      # When strict mode is turned off, the validate-inputs command will only return an error
-      # if required inputs are missing from all input sources (env vars, var files, etc).
-      # When strict mode is turned on, an error will be returned if required inputs
-      # are missing OR if unused variables are passed to Terragrunt.
-
-      # -terragrunt-exclude-dir isn't working properly at the moment
-      # We need to run "terragrunt run-all" in specific folders using a bash work around.
-      # cf issue: https://github.com/gruntwork-io/terragrunt/pull/1644
-      run: |
-        # Iterate over every environment, excluding the "./_envcommon" directory
-        for dir in `find . -maxdepth 1 -mindepth 1 -type d -not -path ./_envcommon`
-        do
-          (cd "$dir" && terragrunt run-all validate-inputs --terragrunt-strict-validate)
-        done
-
-  tflint:
-  # - Find possible errors (like illegal instance types) for major cloud providers (AWS/Azure/GCP).
-  # - Warn about deprecated syntax, unused declarations.
-  # - Enforce best practices, naming conventions.
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-  
-    - uses: terraform-linters/setup-tflint@v2
-      name: Setup TFLint
-      with:
-        tflint_version: v0.39.3
-
-    - name: Show version
-      run: tflint --version
-
-    - name: Init TFLint and run TFLint recursively
-      # nektos/act does not support caching so we init the AWS plugin in the same step
-      # cf https://github.com/nektos/act/issues/285
-      run: |
-        cd terraform/live
-
-        # Install AWS plugin
-        tflint --init
-
-        # Parse files recursively and save output in a txt file
-        find -type d -not -path '*.terraform/*' -exec tflint -f compact {} \; > tflint_output.txt
-
-        # Print potential issues
-        cat tflint_output.txt
-
-        # Fail if any issues were found
-        if [ -s "tflint_output.txt" ]; then exit 1; fi
-
-  tfsec:
-  # Static analysis of terraform templates to spot potential security issues
-    needs: [format, validate, tflint]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: tfsec
-        uses: aquasecurity/tfsec-action@v1.0.0
-        with:
-          additional_args: --minimum-severity HIGH
-
   infracost:
   # Infracost shows cloud cost estimates for Terraform.
   # It lets DevOps, SRE and engineers see a cost breakdown and understand
   # costs before making changes, either in the terminal or pull requests.
-    needs: [tfsec]
+    # needs: [tfsec]
     name: Infracost
     runs-on: ubuntu-latest
     permissions:
@@ -174,8 +46,10 @@ jobs:
         # Ensure this job is skipped when running locally with act
         if: ${{ !env.ACT }}
         run: |
-            infracost comment github --repo=$GITHUB_REPOSITORY \
-                                     --pull-request=${PR_NUMBER} \
-                                     --path=/tmp/infracost.json \
-                                     --github-token=${GITHUB_TOKEN} \
-                                     --behavior=update
+          echo PR PR_NUMBER
+          echo ${PR_NUMBER}
+          infracost comment github --repo=$GITHUB_REPOSITORY \
+                                    --pull-request=${PR_NUMBER} \
+                                    --path=/tmp/infracost.json \
+                                    --github-token=${GITHUB_TOKEN} \
+                                    --behavior=update
