@@ -5,6 +5,7 @@ resource "aws_eip" "nat" {
 }
 
 # Note that this module will also attach an internet gateway to the VPC.
+#tfsec:ignore:aws-ec2-no-public-ip-subnet
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "~> 3.14"

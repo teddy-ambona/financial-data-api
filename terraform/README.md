@@ -73,7 +73,7 @@ Run the below commands to:
 - create a financial-data-api-demo-state S3 bucket
 - create a Dynamo DB
 
-Update your region in terraform/live/global/s3/terragrunt.hcl, by default it is `us-east-1`
+Update your region in terraform/live/global/s3/terragrunt.hcl, by default it is `us-east-1`. For simplicity we use a single region in this tutorial
 
 ```hcl
 locals {
@@ -192,7 +192,7 @@ To use the AWS CLI you will need to call the `aws sts get-session-token` [docume
 
 in `~/.aws/credentials`:
 
-```json
+```text
 [default]
 aws_access_key_id=<your access key id>
 aws_secret_access_key=<your secret access key>
@@ -200,10 +200,10 @@ aws_secret_access_key=<your secret access key>
 [mfa]
 aws_access_key_id=<your access key id>
 aws_secret_access_key=<your secret access key>
-aws_session_token=<your session token>****
+aws_session_token=<your session token>
 ```
 
->Good to know: I personally use the [aws-mfa](https://github.com/broamski/aws-mfa) tool that automates the painful and clunky process of obtaining temporary credentials from the AWS Security Token Service and updating your AWS Credentials.
+> Pro tip: I personally use the [aws-mfa](https://github.com/broamski/aws-mfa) tool that automates the painful and clunky process of obtaining temporary credentials from the AWS Security Token Service and updating your AWS Credentials.
 
 ### C - Create VPC
 

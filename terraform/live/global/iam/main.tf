@@ -30,6 +30,7 @@ resource "aws_iam_account_password_policy" "strict" {
 }
 
 # Create a group with Admin access and add "demo_admin_user" to it
+#tfsec:ignore:aws-iam-no-policy-wildcards
 module "iam_group_with_policies" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-group-with-policies"
   version = "~> 5.3"
@@ -62,6 +63,7 @@ module "iam_group_with_policies" {
 
 # Create policy document that enforces MFA
 # cf https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_examples_aws_my-sec-creds-self-manage.html
+#tfsec:ignore:aws-iam-no-policy-wildcards
 data "aws_iam_policy_document" "mfa_document" {
   statement {
     sid    = "AllowViewAccountInfo"

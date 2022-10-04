@@ -131,12 +131,56 @@ jobs:
         with:
           additional_args: --minimum-severity HIGH
 
-  infra-cost:
+  infracost:
   # Infracost shows cloud cost estimates for Terraform.
   # It lets DevOps, SRE and engineers see a cost breakdown and understand
   # costs before making changes, either in the terminal or pull requests.
     needs: [tfsec]
+    name: Infracost
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      # This instructs the CLI to send cost estimates to Infracost Cloud. Our SaaS product
+      #   complements the open source CLI by giving teams advanced visibility and controls.
+      #   The cost estimates are transmitted in JSON format and do not contain any cloud
+      #   credentials or secrets (see https://infracost.io/docs/faq/ for more information).
+      INFRACOST_ENABLE_CLOUD: true
+    # We run 3 jobs in parallel, because of terragrunt structure which doesn't allow
+    # running a command from the root directory
+    strategy:
+      matrix:
+        env: [global, dev, prod]
     steps:
-      - name: Checkout
+      - name: Setup Infracost
+        uses: infracost/actions/setup@v2
+        # See https://github.com/infracost/actions/tree/master/setup for other inputs
+        # If you can't use this action, see Docker images in https://infracost.io/cicd
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+
+      # Checkout the current PR branch.
+      - name: Checkout PR branch
         uses: actions/checkout@v2
+
+      # Generate Infracost JSON file for the given environment
+      - name: Generate Infracost cost estimate
+        run: |
+          TF_ROOT=terraform/live/${{ matrix.env }}
+          infracost breakdown --path=${TF_ROOT} \
+                              --format=json \
+                              --out-file=/tmp/infracost.json
+
+      # Posts a comment to the PR using the 'update' behavior.
+      # This creates a single comment and updates it. The "quietest" option.
+      # See https://www.infracost.io/docs/features/cli_commands/#comment-on-pull-requests for other options.
+      - name: Post Infracost comment
+        # Ensure this job is skipped when running locally with act
+        if: ${{ !env.ACT }}
+        run: |
+            infracost comment github --path=/tmp/infracost.json \
+                                     --repo=$GITHUB_REPOSITORY \
+                                     --github-token=${{github.token}} \
+                                     --pull-request=${{github.event.pull_request.number}} \
+                                     --behavior=update

@@ -1,3 +1,4 @@
+#tfsec:ignore:aws-ec2-no-public-ingress-sgr
 module "web_server_sg" {
   source  = "terraform-aws-modules/security-group/aws"
   version = "4.11.0"

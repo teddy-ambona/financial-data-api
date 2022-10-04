@@ -18,7 +18,7 @@
   - [B - Best practices](#b---best-practices)
   - [C -](#c--)
 
-This repo is a demo project for dockerized flask applications(REST API). This simplified API exposes GET endpoints that allow you to pull stock prices and trading indicators. You will find the following implementation:
+This repo is a demo project for dockerized flask applications(REST API). This simplified API exposes GET endpoints that allow you to pull stock prices and trading indicators. What is covered in this repo:
 
 **Application code:**
 
@@ -348,11 +348,12 @@ Teragrunt generated files start with the prefix "terragrunt_" and are ignored in
 
 I strongly recommend going through the [terraform best practices](https://github.com/ozbillwang/terraform-best-practices) before exploring this repo.
 
->> 5 pillars for architecture solution(cf Stephan Maarek):
-	- Cost
-	- Performance
-	- Reliability
-	- Security
-	- Operational excellence (How to migrate from clunky app)
+5 pillars for architecture solution:
+
+- Cost
+- Performance
+- Reliability
+- Security
+- Operational excellence (How to migrate from clunky app)
 
 ### C - 
