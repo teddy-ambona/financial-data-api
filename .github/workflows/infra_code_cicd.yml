@@ -143,9 +143,9 @@ jobs:
       pull-requests: write
     env:
       # This instructs the CLI to send cost estimates to Infracost Cloud. Our SaaS product
-      #   complements the open source CLI by giving teams advanced visibility and controls.
-      #   The cost estimates are transmitted in JSON format and do not contain any cloud
-      #   credentials or secrets (see https://infracost.io/docs/faq/ for more information).
+      # complements the open source CLI by giving teams advanced visibility and controls.
+      # The cost estimates are transmitted in JSON format and do not contain any cloud
+      # credentials or secrets (see https://infracost.io/docs/faq/ for more information).
       INFRACOST_ENABLE_CLOUD: true
       PR_NUMBER: ${{ github.event.number }}
     steps:
@@ -175,7 +175,7 @@ jobs:
         if: ${{ !env.ACT }}
         run: |
             infracost comment github --repo=$GITHUB_REPOSITORY \
-                                     --pull-request=$PR_NUMBER \
+                                     --pull-request=${PR_NUMBER} \
                                      --path=/tmp/infracost.json \
-                                     --github-token=$GITHUB_TOKEN \
+                                     --github-token=${GITHUB_TOKEN} \
                                      --behavior=update
