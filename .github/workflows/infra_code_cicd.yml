@@ -147,12 +147,7 @@ jobs:
       #   The cost estimates are transmitted in JSON format and do not contain any cloud
       #   credentials or secrets (see https://infracost.io/docs/faq/ for more information).
       INFRACOST_ENABLE_CLOUD: true
-      GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
-    # We run 3 jobs in parallel, because of terragrunt structure which doesn't allow
-    # running a command from the root directory
-    strategy:
-      matrix:
-        env: [global, dev, prod]
+      PR_NUMBER: ${{ github.event.number }}
     steps:
       - name: Setup Infracost
         uses: infracost/actions/setup@v2
@@ -165,13 +160,11 @@ jobs:
       - name: Checkout PR branch
         uses: actions/checkout@v2
 
-      # Generate Infracost JSON file for the given environment
+      # Generate Infracost JSON file
       - name: Generate Infracost cost estimate
         run: |
-          TF_ROOT=terraform/live/${{ matrix.env }}
-          infracost breakdown --path=${TF_ROOT} \
+          infracost breakdown --config-file=terraform/infracost.yml \
                               --format=json \
-                              --show-skipped \
                               --out-file=/tmp/infracost.json
 
       # Posts a comment to the PR using the 'update' behavior.
@@ -181,8 +174,8 @@ jobs:
         # Ensure this job is skipped when running locally with act
         if: ${{ !env.ACT }}
         run: |
-            infracost comment github --path=/tmp/infracost.json \
-                                     --repo=$GITHUB_REPOSITORY \
-                                     --github-token=${{ github.token }} \
-                                     --pull-request=${GITHUB_PR_NUMBER} \
+            infracost comment github --repo=$GITHUB_REPOSITORY \
+                                     --pull-request=$PR_NUMBER \
+                                     --path=/tmp/infracost.json \
+                                     --github-token=$GITHUB_TOKEN \
                                      --behavior=update
