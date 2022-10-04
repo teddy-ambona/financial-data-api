@@ -1,6 +1,6 @@
 ---
 name: Infrastructure code CICD Pipeline
-on: [push]
+on: [pull_request]
 
 jobs:
   infracost:
@@ -19,7 +19,7 @@ jobs:
       # The cost estimates are transmitted in JSON format and do not contain any cloud
       # credentials or secrets (see https://infracost.io/docs/faq/ for more information).
       INFRACOST_ENABLE_CLOUD: true
-      PR_NUMBER: ${{ github.event.pull_request.number }}
+      PR_NUMBER: ${{ github.event.number }}
     steps:
       - name: Setup Infracost
         uses: infracost/actions/setup@v2
