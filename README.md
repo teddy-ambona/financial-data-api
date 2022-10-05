@@ -90,7 +90,18 @@ $ curl -G -d 'interval=1' -d 'frequency=Annual' http://127.0.0.1:5000/stocks/tim
 .
 ├── .github
 │   ├── workflow
-│   │   └── cicd.yaml
+│   │   └── app_code_cicd.yml
+├── app
+├── docs
+├── .gitignore
+├── Makefile
+├── README.md
+```
+
+In `./app`
+
+```text
+.
 ├── config
 │   ├── .yamllint
 │   └── api_settings
@@ -102,11 +113,6 @@ $ curl -G -d 'interval=1' -d 'frequency=Annual' http://127.0.0.1:5000/stocks/tim
 │       │   └── config.yaml
 │       └── test
 │           └── config.yaml
-├── docs
-│   └── img
-│       ├── CICD.png
-│       ├── architecture.png
-│       └── four-phase-test.gif
 ├── src
 │   ├── __init__.py
 │   ├── app.py
@@ -127,11 +133,9 @@ $ curl -G -d 'interval=1' -d 'frequency=Annual' http://127.0.0.1:5000/stocks/tim
 │       ├── __init__.py
 │       └── test_helpers.py
 ├── .dockerignore
-├── .gitignore
 ├── docker-compose.yaml
 ├── Dockerfile
 ├── Makefile
-├── README.md
 ├── requirements.in
 ├── requirements.txt
 ```

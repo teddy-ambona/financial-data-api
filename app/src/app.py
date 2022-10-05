@@ -1,6 +1,8 @@
 import os
+import json
 import datetime as dt
 
+import boto3
 from yaml import safe_load
 from flask import Flask
 from flask.json import JSONEncoder
@@ -27,14 +29,22 @@ def create_app():
 
     # Fetch config
     ENVIRONMENT = os.environ['ENVIRONMENT']
-    config = safe_load(open(f"/app/settings/{ENVIRONMENT}/config.yaml", 'r'))
-    config['DB']['DB_PASSWORD'] = os.environ['DB_PASSWORD']
+    config = safe_load(open(f'/app/settings/{ENVIRONMENT}/config.yaml', 'r'))
+
+    # Fetch secrets from AWS Secrets Manager
+    if "LOCALSTACK" in config:
+        boto_client = boto3.client('secretsmanager', endpoint_url=config['LOCALSTACK']['ENDPOINT_URL'])
+    else:
+        boto_client = boto3.client('secretsmanager')
+
+    response = boto_client.get_secret_value(SecretId='db/credentials')
+    db_secrets = json.loads(response['SecretString'])
 
     # Set up flask config
     app.config.update(config['APP'])
     app.json_encoder = CustomJSONEncoder
 
-    string_con = "postgresql://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}".format(**config['DB'])
+    string_con = "postgresql://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}".format(**db_secrets, **config['DB'])
     app.config['SQLALCHEMY_DATABASE_URI'] = string_con
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 

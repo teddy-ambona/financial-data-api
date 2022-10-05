@@ -1,14 +1,17 @@
 ---
-name: CICD Pipeline
+name: Application code CICD Pipeline
 on: [push]
 
 env:
-  IMAGE_VERSION: 0.4.0
+  IMAGE_VERSION: 0.5.0
   DOCKER_REPOSITORY: tambona29/financial-data-api
 
 jobs:
   yamllint:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
     steps:
       - uses: actions/checkout@v2
       - name: Lint with yamllint
@@ -17,6 +20,9 @@ jobs:
 
   flake8:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
     steps:
       - uses: actions/checkout@v2
       - name: Lint with flake8
@@ -25,6 +31,9 @@ jobs:
 
   pydocstyle:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
     steps:
       - uses: actions/checkout@v2
       - name: Lint with pydocstyle
@@ -33,6 +42,9 @@ jobs:
 
   safety:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
     steps:
       - uses: actions/checkout@v2
       - name: Check for python vulnerablities
@@ -49,6 +61,9 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: config
+
+          # File to scan
+          scan-ref: app/Dockerfile
           format: table
           exit-code: 1
           vuln-type: security-check
@@ -81,8 +96,8 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v2
         with:
-          context: .
-          file: ./Dockerfile
+          context: ./app
+          file: ./app/Dockerfile
           tags: ${{ steps.build_image_tag.outputs.IMAGE_TAG }}
           outputs: type=docker,dest=/tmp/flask-app.tar
 
@@ -145,7 +160,7 @@ jobs:
 
       - name: Run unit tests
         run: |
-          make IMAGE_TAG=${IMAGE_TAG} unit-tests
+          cd app && make IMAGE_TAG=${IMAGE_TAG} unit-tests
 
   integration-tests:
     needs: [build, image-vulnerabilities]
@@ -183,7 +198,7 @@ jobs:
 
       - name: Run integration tests
         run: |
-          make IMAGE_TAG=${IMAGE_TAG} integration-tests
+          cd app && make IMAGE_TAG=${IMAGE_TAG} integration-tests
 
   push-to-registry:
     # Ensure this job is skipped when running locally with act
@@ -220,6 +235,6 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
         with:
-          context: .
+          context: ./app
           push: true
           tags: ${{ needs.build.outputs.IMAGE_TAG }}

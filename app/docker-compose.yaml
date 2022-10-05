@@ -1,0 +1,38 @@
+---
+version: '3.8'
+services:
+  flask-app:
+    container_name: "flask-app"
+    restart: "no"
+    image: "${IMAGE_TAG}"
+    ports:
+      - "5000:5000"
+    environment:
+      - ENVIRONMENT=local
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_DEFAULT_REGION=us-east-1
+    depends_on:
+      - postgres-db
+
+  postgres-db:
+    image: postgres:14.1-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    ports:
+      - "5432:5432"
+
+  # There's few pitfalls when configuring your stack manually via docker-compose
+  # (e.g., required container name, Docker network, volume mounts, environment variables, etc.).
+  # Running "localstack config validate" validates your configuration by printing warning messages
+  # in case it detects any (potential) misconfigurations.
+  localstack:
+    container_name: "localstack"
+    image: localstack/localstack
+    ports:
+      - "127.0.0.1:4566:4566"  # LocalStack Gateway
+    environment:
+      - SERVICES=secretsmanager
