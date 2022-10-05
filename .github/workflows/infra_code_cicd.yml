@@ -162,7 +162,7 @@ jobs:
       # Generate Infracost JSON file
       - name: Generate Infracost cost estimate
         run: |
-          infracost breakdown --config-file=terraform/infracost.yml \
+          infracost breakdown --config-file=terraform/live/infracost.yml \
                               --format=json \
                               --out-file=/tmp/infracost.json
 

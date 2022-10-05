@@ -24,8 +24,8 @@ module "db_sg" {
   description = "Security group for database"
   vpc_id      = data.terraform_remote_state.vpc.outputs.vpc_id
 
-  # Only allow requests coming from private subnet "10.0.1.0/24"
-  ingress_cidr_blocks = ["10.0.1.0/24"]
+  # Only allow requests coming from VPC CIDR blocks
+  ingress_cidr_blocks = ["10.0.1.0/24", "10.0.2.0/24", "10.0.101.0/24", "10.0.102.0/24"]
   ingress_rules       = ["postgresql-tcp"]
 
   tags = {

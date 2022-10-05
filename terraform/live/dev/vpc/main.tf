@@ -1,9 +1,3 @@
-resource "aws_eip" "nat" {
-  count = 1
-
-  vpc = true
-}
-
 # Note that this module will also attach an internet gateway to the VPC.
 #tfsec:ignore:aws-ec2-no-public-ip-subnet
 module "vpc" {

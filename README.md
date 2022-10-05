@@ -124,9 +124,9 @@ $ curl -G -d 'interval=1' -d 'frequency=Annual' http://127.0.0.1:5000/stocks/tim
 ]
 ```
 
-### B - Deploy the infrastructure in AWS
+### B - Deploy the infrastructure on AWS
 
-A step by step guide to IaC is accessible in [terraform/README.md](terraform/README.md)
+A step by step guide to financial-data-api IaC is accessible in [terraform/README.md](terraform/README.md)
 
 ## 3 - Project file structure
 
@@ -204,7 +204,8 @@ In `./terraform`
 │   │       ├── main.tf
 │   │       ├── README.md
 │   │       └── terragrunt.hcl
-│   └── .tflint.hcl
+│   ├── .tflint.hcl
+│   └── infracost.yml
 ├── modules
 ├── Makefile
 └── README.md
@@ -232,7 +233,7 @@ In `./terraform`
 - **image-vulnerabilities:** Image vulnerablities scanner(Trivy)
 - **unit-tests:** Test the smallest piece of code(functions) that can be isolated
 - **integration-tests:** Series of tests which call the API
-- **push-to-registry:** Push the Docker image to Docker Hub
+- **push-to-registry:** Push the Docker image to [Docker Hub](https://hub.docker.com/r/tambona29/financial-data-api)
 
 > Note that the last job should be skipped when running the pipeline locally.
 This is ensured using `if: ${{ !env.ACT }}` in the `push-to-registry` job.

@@ -207,42 +207,115 @@ aws_session_token=<your session token>
 
 ### C - Create VPC
 
-[cf terraform-aws-modules/vpc/aws](https://github.com/terraform-aws-modules/terraform-aws-vpc):
+It's best practice to create 1 VPC per application that you want to deploy and ideally 1 account per app, per envrionement to limit blast radius.
 
-This module will:
+module paths:
+
+- [live/dev/vpc](live/dev/vpc)
+- [live/prod/vpc](live/prod/vpc)
+
+Resources added:
 
 - Create a new VPC
 - Attach an internet gateway to the VPC
-- Create a private subnet and a public subnet
-- Create a NAT gateway
-- Create a route table association
+- Create a 2 private subnets and 2 public subnets (multi-AZ)
+- Create subnet route tables
+- Create route table associations
 
-### D - Create security groups (firewalls)
+### D - Create security groups (firewalls at instance level)
 
-[cf terraform-aws-security-group](https://github.com/terraform-aws-modules/terraform-aws-security-group)
+module paths:
 
-This module will:
+- [live/dev/security-groups](live/dev/security-groups)
+- [live/prod/security-groups](live/prod/security-groups)
+
+Resources added:
 
 - Create a security group for the web-server
 - Create a security group for the database
 
 ### E - Create Postgres DB
 
-[cf terraform-aws-modules/rds/aws](https://registry.terraform.io/modules/terraform-aws-modules/rds/aws/latest)
+module paths:
 
-This module will:
+- [live/dev/data-storage](live/dev/data-storage)
+- [live/prod/data-storage](live/prod/data-storage)
+
+Resources added:
 
 - Create a managed PostgresDB with RDS
 - Attach the previously created security-group to the DB
-- Associate DB to private subnets in order to avoid connection from the internet
+- Associate DB to private subnets in order to avoid inbound/outbound traffic with the internet
 
-### F - Create DB schema and populate data
+### F - RDS PostgreSQL DB: Create DB schema and populate dev data
 
-We have now instantiated a RDS DB on the private subnet which means connections from/to the internet are not enabled. Even though it would be practical we do not whitelist public IP as this is bad practice, RDS should remain on a private subnet. To execute SQL queries on the DB instance we can SSH onto an EC2 instance and login from there.
+We have now instantiated a RDS DB on the private subnet which means connections from/to the internet are not enabled. Even though it would be practical we do not whitelist public IPs as this is bad practice, RDS should remain on a private subnet.
 
-Let's use the following command to create a schema and populate our DB with the mock dataset
+So how do I populate my private RDS DB with a one-off script?
 
-Using our AWS "admin" user keys
+To execute SQL queries on the DB instance we can SSH onto an EC2 instance (in public subnet) that we call **bastion host**.
+
+Let's use the following command to create the DB schema and populate our DB with the mock dataset
+
+To connect to a private Amazon RDS, it's a best practice to use VPN or AWS Direct Connect ([cf aws documentation](https://aws.amazon.com/premiumsupport/knowledge-center/rds-connect-ec2-bastion-host/#)). Because I intend to remain in AWS free-tier I instead use a bastion host.
+
+1 - Create EC2 instance (bastion host) on public subnet with restrictive sg (should only allow ssh from public CIDR of your corporation)
+
+2 - SSH onto the EC2 bastion host using AWS instance connect (in the web console)
+
+3 - Run the following script on the machine (make sure you replace the DB host name as well as the password)
+
+```bash
+# Update installed packages to the latest available releases.
+sudo yum -y update
+
+# "Git clone" the repo that contains test data.
+sudo yum -y install git
+git clone https://github.com/teddy-ambona/financial-data-api.git
+
+# Replace dev config placeholders with actual dev config.
+cd financial-data-api
+cp -r config/api_settings ./settings
+cat << EOT > settings/development/config.yaml
+---
+APP:
+  DEBUG: true
+
+DB:
+  DB_NAME: market_data
+  DB_USERNAME: postgres
+  DB_PORT: 5432
+  DB_HOST: <YOUR_DB_HOST_NAME>
+EOT
+
+# Install Docker.
+sudo yum -y install docker
+sudo service docker start  # Start Docker daemon.
+sudo usermod -a -G docker ec2-user  # Avoid using "sudo" for each command.
+
+# Populate dev DB with test data
+docker run --rm -e ENVIRONMENT=development \
+-e DB_PASSWORD=<REPLACE_WITH_YOUR_DB_PASSOWRD> \
+--entrypoint="" \
+-v ${PWD}:/app -w="/app" \
+tambona29/financial-data-api:0.4.0 python -c \
+"from tests.conftest import populate_db_for_local_testing; populate_db_for_local_testing();"
+
+# Install psql
+sudo tee /etc/yum.repos.d/pgdg.repo<<EOF
+[pgdg12]
+name=PostgreSQL 12 for RHEL/CentOS 7 - x86_64
+baseurl=https://download.postgresql.org/pub/repos/yum/12/redhat/rhel-7-x86_64
+enabled=1
+gpgcheck=0
+EOF
+
+sudo yum -y makecache
+sudo yum -y install postgresql12 postgresql12-server
+
+# Verify the data has been populated
+psql -h <YOUR_DB_HOST_NAME> -p 5432 -d market_data -U postgres -c "SELECT * FROM market_data.stocks_ohlcv;"
+```
 
 ### G - Deploy serverless web-app
 
