@@ -1,29 +1,34 @@
-# financial-data-api &middot; ![ci](https://github.com/teddy-ambona/financial-data-api/actions/workflows/ci.yml/badge.svg)
+# financial-data-api &middot; ![ci](https://github.com/teddy-ambona/financial-data-api/actions/workflows/app_code_cicd.yml/badge.svg)
 
-- [1 - Prerequisites](#1---prerequisites)
-- [2 - Quickstart](#2---quickstart)
-- [3 - Project file structure](#3---project-file-structure)
-- [4 - CICD](#4---cicd)
-  - [A - App CICD overview](#a---app-cicd-overview)
-  - [B - Infra CICD overview](#b---infra-cicd-overview)
+- [1 - Architecture](#1---architecture)
+  - [A - App CICD architecture](#a---app-cicd-architecture)
+  - [B - Cloud architecture](#b---cloud-architecture)
+- [2 - Prerequisites](#2---prerequisites)
+- [3 - Quickstart](#3---quickstart)
+  - [A - Run local stack](#a---run-local-stack)
+  - [B - Deploy the infrastructure on AWS](#b---deploy-the-infrastructure-on-aws)
+- [4 - Project file structure](#4---project-file-structure)
+- [5 - CICD](#5---cicd)
+  - [A - App CICD workflow](#a---app-cicd-workflow)
+  - [B - Infra CICD workflow](#b---infra-cicd-workflow)
   - [C - Running the CICD pipeline locally](#c---running-the-cicd-pipeline-locally)
-- [5 - Docker image build pattern](#5---docker-image-build-pattern)
+- [6 - Docker image build pattern](#6---docker-image-build-pattern)
   - [A - SemVer2](#a---semver2)
   - [B - Version bump](#b---version-bump)
-- [6 - Testing framework](#6---testing-framework)
+- [7 - Testing framework](#7---testing-framework)
   - [A - GIVEN-WHEN-THEN (Martin Fowler)](#a---given-when-then-martin-fowler)
   - [B - Four-Phase Test (Gerard Meszaros)](#b---four-phase-test-gerard-meszaros)
-- [7 - Deployment to AWS with Terraform](#7---deployment-to-aws-with-terraform)
+  - [C - Debugging the code with VS Code remote-container extension](#c---debugging-the-code-with-vs-code-remote-container-extension)
+- [8 - Deployment to AWS with Terraform](#8---deployment-to-aws-with-terraform)
   - [A - Keep your code DRY with Terragrunt](#a---keep-your-code-dry-with-terragrunt)
   - [B - Best practices](#b---best-practices)
-  - [C -](#c--)
 
 This repo is a demo project for dockerized flask applications(REST API). This simplified API exposes GET endpoints that allow you to pull stock prices and trading indicators. What is covered in this repo:
 
 **Application code:**
 
 - Github Actions CICD:
-  - static analysis: flake8, pydocstyle
+  - Static analysis: flake8, pydocstyle
   - Image misconfiguration/vulnerabilities (Trivy), passing artifacts between jobs
   - Testing patterns with Pytests (unit / integration)
   - Docker image build and distribution pattern
@@ -48,7 +53,15 @@ This repo is a demo project for dockerized flask applications(REST API). This si
 - Automated architecture diagrams from Terraform code
 - Terraform remote backend bootstrap
 
-## 1 - Prerequisites
+## 1 - Architecture
+
+### A - App CICD architecture
+
+<img src="./docs/img/app_cicd_architecture.png" width="700"/>
+
+### B - Cloud architecture
+
+## 2 - Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/)
 - [Docker Compose CLI plugin](https://docs.docker.com/compose/install/compose-plugin/)
@@ -60,7 +73,7 @@ This repo is a demo project for dockerized flask applications(REST API). This si
 
 > The API doesn't require python installed on your machine.
 
-## 2 - Quickstart
+## 3 - Quickstart
 
 ### A - Run local stack
 
@@ -68,6 +81,7 @@ Run the following commands to:
 
 - Build the Docker image
 - Run the app and db services locally
+- Populate the db credentials secret in AWS Secrets Manager (localstack)
 - Populate DB with TSLA and AMZN stock prices
 
 ```bash
@@ -128,7 +142,7 @@ $ curl -G -d 'interval=1' -d 'frequency=Annual' http://127.0.0.1:5000/stocks/tim
 
 A step by step guide to financial-data-api IaC is accessible in [terraform/README.md](terraform/README.md)
 
-## 3 - Project file structure
+## 4 - Project file structure
 
 The best practice is for infrastructure and application code to sit in different repos, however I wanted to make this demo project self-contained.
 
@@ -146,7 +160,7 @@ The best practice is for infrastructure and application code to sit in different
 ├── README.md
 ```
 
-In `./app`
+In [./app](./app)
 
 ```text
 .
@@ -188,7 +202,7 @@ In `./app`
 ├── requirements.txt
 ```
 
-In `./terraform`
+In [./terraform](./terraform)
 
 ```text
 .
@@ -215,11 +229,9 @@ In `./terraform`
 
 `live` and `modules` folders should sit in 2 separate git repos where `live` contains the currently deployed infratructure whilst `modules` should contain user defined modules. In this repo I only reuse existing terraform modules so `live` and `modules` folders are just placeholders. The idea behind having `live` vs `modules` git repos is to make sure you can point at a versioned module in dev/stage/prod and reduce the risk of impacting prod.
 
-## 4 - CICD
+## 5 - CICD
 
-### A - App CICD overview
-
-<img src="./docs/img/architecture.png" width="700"/>
+### A - App CICD workflow
 
 <img src="./docs/img/CICD.png" width="700"/>
 <br></br>
@@ -239,7 +251,7 @@ In `./terraform`
 This is ensured using `if: ${{ !env.ACT }}` in the `push-to-registry` job.
 Running this locally means there will be a conflicting image tag when the Github Actions CICD will try and run it a second time.
 
-### B - Infra CICD overview
+### B - Infra CICD workflow
 
 - **format:** Check if all Terraform configuration files are in a canonical format
 - **validate:** Verify whether a configuration is syntactically valid and internally consistent
@@ -275,7 +287,7 @@ DOCKERHUB_TOKEN=<YOUR_DOCKERHUB_TOKEN>
 INFRACOST_API_KEY=<YOUR_INFRACOST_API_KEY>
 ```
 
-Optionally you could also run pipeline jobs using the Makefile directly.
+Optionally you could also run pipeline jobs using the [Makefile](./app/Makefile) directly.
 
 Example:
 
@@ -286,7 +298,7 @@ make tests
 
 Some jobs such as `image-vulnerabilities` can be run in isolation using the act `-j <job-name>` command (example `-j image-vulnerabilities`).
 
-## 5 - Docker image build pattern
+## 6 - Docker image build pattern
 
 The requirements are:
 
@@ -308,9 +320,9 @@ The requirements are:
 
 ### B - Version bump
 
-Each PR should contain a version of the `IMAGE_VERSION` in `.github/workflows/ci.yml`.
+Each PR should contain a new version of the `IMAGE_VERSION` in [.github/workflows/app_code_cicd.yml](.github/workflows/app_code_cicd.yml#L6)
 
-## 6 - Testing framework
+## 7 - Testing framework
 
 ### A - [GIVEN-WHEN-THEN](https://martinfowler.com/bliki/GivenWhenThen.html) (Martin Fowler)
 
@@ -327,9 +339,64 @@ Each PR should contain a version of the `IMAGE_VERSION` in `.github/workflows/ci
 *(image from [Four-Phase Test](http://xunitpatterns.com/Four%20Phase%20Test.html))*
 <br></br>
 
-For integration testing, the *Setup* phase consists in truncating and repopulating the DB.
+For integration testing, the *Setup* phase consists in truncating and repopulating the `market_data` DB (cf [db_fixture](app\tests\conftest.py#L52))
 
-## 7 - Deployment to AWS with Terraform
+### C - Debugging the code with VS Code remote-container extension
+
+For debugging the code from within a Docker container you can use VS Code with the following config:
+
+in `.devcontainer/devcontainer.json`
+
+```json
+{
+  "name": "Existing Dockerfile",
+  "context": "../app",
+  "dockerFile": "../app/Dockerfile",
+
+  "runArgs": [ "--network=host"],
+
+  "remoteUser": "root",
+  "remoteEnv": {
+    "ENVIRONMENT": "test",
+    "AWS_ACCESS_KEY_ID": "test",
+    "AWS_SECRET_ACCESS_KEY": "test",
+    "AWS_DEFAULT_REGION": "us-east-1"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python"
+      ]
+    }
+  }
+}
+
+```
+
+in `.vscode/launch.json`
+
+```text
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            // Testing extensions are very unstable in the remote-container extension
+            // Hence it's preferable to run the tests from launch.json
+            "name": "test_time_series",
+            "type": "python",
+            "request": "launch",
+            "module": "pytest",
+            "args": ["tests/integration/test_stocks.py::test_time_series"],
+            "cwd": "${workspaceFolder}/app",
+            "justMyCode": false, // Debug only user-written code
+        }
+    ]
+}
+```
+
+In addition to this I have also written another [documentation](https://github.com/teddy-ambona/developer-workstation#debugging-inside-a-docker-container) for remote-container extension that can be quite handy.
+
+## 8 - Deployment to AWS with Terraform
 
 IMPORTANT: Following these instructions will deploy code into your AWS account. All of this qualifies for the AWS Free Tier, but if you've already used up your credits, running this code may cost you money. Also this repo is meant to be deployed to your sandbox environment.
 
@@ -356,5 +423,3 @@ I strongly recommend going through the [terraform best practices](https://github
 - Reliability
 - Security
 - Operational excellence (How to migrate from clunky app)
-
-### C - 

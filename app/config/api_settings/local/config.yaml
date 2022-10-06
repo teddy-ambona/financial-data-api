@@ -4,7 +4,10 @@ APP:
 
 DB:
   DB_NAME: postgres
-  DB_USERNAME: postgres
   DB_PORT: 5432
   # Docker compose exposes hosts on an internal network with the same host names as the services.
   DB_HOST: postgres-db
+
+LOCALSTACK:
+  # Docker compose exposes hosts on an internal network with the same host names as the services.
+  ENDPOINT_URL: http://localstack:4566
