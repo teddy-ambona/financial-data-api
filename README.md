@@ -1,4 +1,4 @@
-# financial-data-api &middot; ![ci](https://github.com/teddy-ambona/financial-data-api/actions/workflows/ci.yml/badge.svg)
+# financial-data-api &middot; ![ci](https://github.com/teddy-ambona/financial-data-api/actions/workflows/app_code_cicd.yml/badge.svg)
 
 - [1 - Prerequisites](#1---prerequisites)
 - [2 - Quickstart](#2---quickstart)
@@ -12,7 +12,7 @@
 - [6 - Testing framework](#6---testing-framework)
   - [A - GIVEN-WHEN-THEN (Martin Fowler)](#a---given-when-then-martin-fowler)
   - [B - Four-Phase Test (Gerard Meszaros)](#b---four-phase-test-gerard-meszaros)
-  - [C - Debugging the code with VScode remote-container extension](#c---debugging-the-code-with-vscode-remote-container-extension)
+  - [C - Debugging the code with VS code remote-container extension](#c---debugging-the-code-with-vs-code-remote-container-extension)
 
 This repo is a demo project for dockerized flask applications(REST API). This simplified API exposes GET endpoints that allow you to pull stock prices and trading indicators. What is covered in this repo:
 
@@ -249,9 +249,9 @@ Each PR should contain a new version of the `IMAGE_VERSION` in [.github/workflow
 
 For integration testing, the *Setup* phase consists in truncating and repopulating the `market_data` DB (cf [db_fixture](app\tests\conftest.py#L52))
 
-### C - Debugging the code with VScode remote-container extension
+### C - Debugging the code with VS Code remote-container extension
 
-For debugging the code from within a Docker container you can use VScode with the following config:
+For debugging the code from within a Docker container you can use VS Code with the following config:
 
 in `.devcontainer/devcontainer.json`
 
@@ -283,7 +283,7 @@ in `.devcontainer/devcontainer.json`
 
 in `.vscode/launch.json`
 
-```json
+```text
 {
     "version": "0.2.0",
     "configurations": [
