@@ -1,20 +1,34 @@
 # financial-data-api &middot; ![ci](https://github.com/teddy-ambona/financial-data-api/actions/workflows/ci.yml/badge.svg)
 
-This repo is a template for dockerized flask applications(REST API). This simplified API exposes GET endpoints that allow you to pull stock prices and trading indicators. You will find the following implementation:
+- [1 - Prerequisites](#1---prerequisites)
+- [2 - Quickstart](#2---quickstart)
+- [3 - Project file structure](#3---project-file-structure)
+- [4 - CICD](#4---cicd)
+  - [A - App CICD overview](#a---app-cicd-overview)
+  - [B - Running the CICD pipeline locally](#b---running-the-cicd-pipeline-locally)
+- [5 - Docker image build pattern](#5---docker-image-build-pattern)
+  - [A - SemVer2](#a---semver2)
+  - [B - Version bump](#b---version-bump)
+- [6 - Testing framework](#6---testing-framework)
+  - [A - GIVEN-WHEN-THEN (Martin Fowler)](#a---given-when-then-martin-fowler)
+  - [B - Four-Phase Test (Gerard Meszaros)](#b---four-phase-test-gerard-meszaros)
+  - [C - Debugging the code with VScode remote-container extension](#c---debugging-the-code-with-vscode-remote-container-extension)
 
-- Github Actions CICD
+This repo is a demo project for dockerized flask applications(REST API). This simplified API exposes GET endpoints that allow you to pull stock prices and trading indicators. What is covered in this repo:
+
+- Github Actions CICD:
+  - static analysis: flake8, pydocstyle
+  - Image misconfiguration/vulnerabilities (Trivy), passing artifacts between jobs
+  - Testing patterns with Pytests (unit / integration)
+  - Docker image build and distribution pattern
 - Docker PostgreSQL DB setup for local testing
-- Docker image build and distribution pattern
 - Services configuration with Docker Compose
 - Makefile template
 - Flask blueprints
-- Testing patterns
 - Flask-SQLAlchemy implementation
 - Dependency injection
 
-<img src="./docs/img/architecture.png" width="700"/>
-
-## Prerequisites
+## 1 - Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/)
 - [Docker Compose CLI plugin](https://docs.docker.com/compose/install/compose-plugin/)
@@ -22,12 +36,13 @@ This repo is a template for dockerized flask applications(REST API). This simpli
 
 > The API doesn't require python installed on your machine.
 
-## Quickstart
+## 2 - Quickstart
 
 Run the following commands to:
 
 - Build the Docker image
 - Run the app and db services
+- Populate the db credentials secret in AWS Secrets Manager (localstack)
 - Populate DB with TSLA and AMZN stock prices
 
 ```bash
@@ -84,13 +99,24 @@ $ curl -G -d 'interval=1' -d 'frequency=Annual' http://127.0.0.1:5000/stocks/tim
 ]
 ```
 
-## Project file structure
+## 3 - Project file structure
 
 ```text
 .
 ├── .github
 │   ├── workflow
-│   │   └── cicd.yaml
+│   │   └── app_code_cicd.yml
+├── app
+├── docs
+├── .gitignore
+├── Makefile
+├── README.md
+```
+
+In [./app](./app)
+
+```text
+.
 ├── config
 │   ├── .yamllint
 │   └── api_settings
@@ -102,11 +128,6 @@ $ curl -G -d 'interval=1' -d 'frequency=Annual' http://127.0.0.1:5000/stocks/tim
 │       │   └── config.yaml
 │       └── test
 │           └── config.yaml
-├── docs
-│   └── img
-│       ├── CICD.png
-│       ├── architecture.png
-│       └── four-phase-test.gif
 ├── src
 │   ├── __init__.py
 │   ├── app.py
@@ -127,16 +148,18 @@ $ curl -G -d 'interval=1' -d 'frequency=Annual' http://127.0.0.1:5000/stocks/tim
 │       ├── __init__.py
 │       └── test_helpers.py
 ├── .dockerignore
-├── .gitignore
 ├── docker-compose.yaml
 ├── Dockerfile
 ├── Makefile
-├── README.md
 ├── requirements.in
 ├── requirements.txt
 ```
 
-## CICD overview
+## 4 - CICD
+
+### A - App CICD overview
+
+<img src="./docs/img/app_cicd_architecture.png" width="700"/>
 
 <img src="./docs/img/CICD.png" width="700"/>
 <br></br>
@@ -156,15 +179,14 @@ $ curl -G -d 'interval=1' -d 'frequency=Annual' http://127.0.0.1:5000/stocks/tim
 This is ensured using `if: ${{ !env.ACT }}` in the `push-to-registry` job.
 Running this locally means there will be a conflicting image tag when the Github Actions CICD will try and run it a second time.
 
-## Running the CICD pipeline locally
+### B - Running the CICD pipeline locally
 
 Install [act](https://github.com/nektos/act) to run the jobs on your local machine.
 
 Example:
 
 ```bash
-act --secret-file secrets.txt --artifact-server-path /tmp/artifacts  # Run the full CICD pipeline
-act -j pydocstyle --secret-file secrets.txt --artifact-server-path /tmp/artifacts # Run specific job
+make app-cicd  # Run the full app CICD pipeline without pushing to Docker Hub
 ```
 
 In `secrets.txt`:
@@ -175,19 +197,16 @@ DOCKERHUB_USERNAME=<YOUR_DOCKERHUB_USERNAME>
 DOCKERHUB_TOKEN=<YOUR_DOCKERHUB_TOKEN>
 ```
 
-`--artifact-server-path` has to be specified as the workflow is using `actions/upload-artifact` and `actions/download-artifact`([cf issue](https://github.com/nektos/act/issues/329#issuecomment-1187246629))
-
-Optionally you could also run pipeline jobs using the Makefile directly.
+Optionally you could also run pipeline jobs using the [Makefile](./app/Makefile) directly.
 
 Example:
 
 ```bash
 make pydocstyle
 make tests
-make run-cicd  # Run the full CICD pipeline without pushing to Docker Hub
 ```
 
-## Docker image build pattern
+## 5 - Docker image build pattern
 
 The requirements are:
 
@@ -197,7 +216,7 @@ The requirements are:
 
 - The image tag should follow [SemVer specifications](https://semver.org/) which is `MAJOR.MINOR.PATCH-<BRANCH NAME>.dev.<COMMIT SHA>` for dev versions and `MAJOR.MINOR.PATCH` for production use.
 
-### SemVer2
+### A - SemVer2
 
 |   Branch  | Commit # | Image Version | Image Tag  |
 |:---------:|:--------:|:-------------:|:----------:|
@@ -207,9 +226,13 @@ The requirements are:
 
 > The [docker/metadata-action@v4](https://github.com/docker/metadata-action#semver) task can automate this but it requires using git tags which can be a bit cumbersome as it requires an update for each commit. So I preferred reimplementing something straightforward that uses the git branch name and commit SHA to form the image tag.
 
-## Testing framework
+### B - Version bump
 
-### [GIVEN-WHEN-THEN](https://martinfowler.com/bliki/GivenWhenThen.html) (Martin Fowler)
+Each PR should contain a new version of the `IMAGE_VERSION` in [.github/workflows/app_code_cicd.yml](.github/workflows/app_code_cicd.yml#L6)
+
+## 6 - Testing framework
+
+### A - [GIVEN-WHEN-THEN](https://martinfowler.com/bliki/GivenWhenThen.html) (Martin Fowler)
 
 **GIVEN** - Describes the state of the world before you begin the behavior you're specifying in this scenario. You can think of it as the pre-conditions to the test.
 
@@ -217,11 +240,66 @@ The requirements are:
 
 **THEN** - Changes you expect due to the specified behavior.
 
-### [Four-Phase Test](http://xunitpatterns.com/Four%20Phase%20Test.html) (Gerard Meszaros)
+### B - [Four-Phase Test](http://xunitpatterns.com/Four%20Phase%20Test.html) (Gerard Meszaros)
 
 <img src="./docs/img/four-phase-test.png" width="700"/>
 
 *(image from [Four-Phase Test](http://xunitpatterns.com/Four%20Phase%20Test.html))*
 <br></br>
 
-For integration testing, the *Setup* phase consists in truncating and repopulating the DB.
+For integration testing, the *Setup* phase consists in truncating and repopulating the `market_data` DB (cf [db_fixture](app\tests\conftest.py#L52))
+
+### C - Debugging the code with VScode remote-container extension
+
+For debugging the code from within a Docker container you can use VScode with the following config:
+
+in `.devcontainer/devcontainer.json`
+
+```json
+{
+  "name": "Existing Dockerfile",
+  "context": "../app",
+  "dockerFile": "../app/Dockerfile",
+
+  "runArgs": [ "--network=host"],
+
+  "remoteUser": "root",
+  "remoteEnv": {
+    "ENVIRONMENT": "test",
+    "AWS_ACCESS_KEY_ID": "test",
+    "AWS_SECRET_ACCESS_KEY": "test",
+    "AWS_DEFAULT_REGION": "us-east-1"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python"
+      ]
+    }
+  }
+}
+
+```
+
+in `.vscode/launch.json`
+
+```json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            // Testing extensions are very unstable in the remote-container extension
+            // Hence it's preferable to run the tests from launch.json
+            "name": "test_time_series",
+            "type": "python",
+            "request": "launch",
+            "module": "pytest",
+            "args": ["tests/integration/test_stocks.py::test_time_series"],
+            "cwd": "${workspaceFolder}/app",
+            "justMyCode": false, // Debug only user-written code
+        }
+    ]
+}
+```
+
+In addition to this I have also written another [documentation](https://github.com/teddy-ambona/developer-workstation#debugging-inside-a-docker-container) for remote-container extension that can be quite handy.
