@@ -17,7 +17,7 @@
 This repo is a demo project for dockerized flask applications(REST API). This simplified API exposes GET endpoints that allow you to pull stock prices and trading indicators. What is covered in this repo:
 
 - Github Actions CICD:
-  - static analysis: flake8, pydocstyle
+  - Static analysis: flake8, pydocstyle
   - Image misconfiguration/vulnerabilities (Trivy), passing artifacts between jobs
   - Testing patterns with Pytests (unit / integration)
   - Docker image build and distribution pattern
