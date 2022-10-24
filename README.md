@@ -61,6 +61,12 @@ This repo is a demo project for dockerized flask applications(REST API). This si
 
 ### B - Cloud architecture
 
+Basic 3-tier application:
+
+- Application layer
+- Business logic layer
+- Data access layer
+
 ## 2 - Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/)
@@ -339,7 +345,7 @@ Each PR should contain a new version of the `IMAGE_VERSION` in [.github/workflow
 *(image from [Four-Phase Test](http://xunitpatterns.com/Four%20Phase%20Test.html))*
 <br></br>
 
-For integration testing, the *Setup* phase consists in truncating and repopulating the `market_data` DB (cf [db_fixture](app\tests\conftest.py#L52))
+For integration testing, the *Setup* phase consists in truncating and repopulating the `market_data` DB (cf [db_fixture](app/tests/conftest.py#L52))
 
 ### C - Debugging the code with VS Code remote-container extension
 
@@ -416,10 +422,27 @@ Teragrunt generated files start with the prefix "terragrunt_" and are ignored in
 
 I strongly recommend going through the [terraform best practices](https://github.com/ozbillwang/terraform-best-practices) before exploring this repo.
 
-5 pillars for architecture solution:
+This hands-on complies with the [6 pillars for architecture solution](https://aws.amazon.com/architecture/well-architected):
 
-- Cost
-- Performance
-- Reliability
-- Security
-- Operational excellence (How to migrate from clunky app)
+**Operational Excellence** – The ability to run and monitor systems to deliver business value and to continually improve supporting processes and procedures.
+
+**Security** – The ability to protect information, systems, and assets while delivering business value through risk assessments and mitigation strategies.
+
+**Reliability** – The ability of a system to recover from infrastructure or service disruptions, dynamically acquire computing resources to meet demand, and mitigate disruptions such as misconfigurations or transient network issues.
+
+**Performance Efficiency** – The ability to use computing resources efficiently to meet system requirements, and to maintain that efficiency as demand changes and technologies evolve.
+
+**Cost Optimization** – The ability to run systems to deliver business value at the lowest price point.
+
+These pillars aren't trade-off but they should be synergies, for example better sustainability means better performance efficiency and operational excellence means better cost optimization.
+
+A useful tool when it comes to enforcing best practices across your cloud infrastruture is [Amazon Trusted Advisor](https://aws.amazon.com/premiumsupport/technology/trusted-advisor/) which has a free version in the Amazon Web Services Management Console. Only a limited version is available in the free-tier though.
+
+A good architecture design can be facilitated by following these [AWS General design principles](https://wa.aws.amazon.com/wat.design_principles.wa-dp.en.html):
+
+- Stop guessing your capacity needs
+- Test systems at production scale
+- Automate to make architectural experimentation easier
+- Allow for evolutionary architectures
+- Drive architectures using data
+- Improve through game days

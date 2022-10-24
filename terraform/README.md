@@ -1,20 +1,43 @@
 # Terraform deployment
 
+- [1 - Environments segmentation](#1---environments-segmentation)
 - [1 - [Optional] If you have a new AWS account](#1---optional-if-you-have-a-new-aws-account)
 - [2 - Module dependencies](#2---module-dependencies)
 - [3 - Modules deployment](#3---modules-deployment)
   - [A - Create S3 bucket and Dynamo DB for state lock](#a---create-s3-bucket-and-dynamo-db-for-state-lock)
   - [B - Create IAM admin group and add admin user to it](#b---create-iam-admin-group-and-add-admin-user-to-it)
   - [C - Create VPC](#c---create-vpc)
-  - [D - Create security groups (firewalls)](#d---create-security-groups-firewalls)
+  - [D - Create security groups (firewalls at instance level)](#d---create-security-groups-firewalls-at-instance-level)
   - [E - Create Postgres DB](#e---create-postgres-db)
-  - [F - Create DB schema and populate data](#f---create-db-schema-and-populate-data)
+    - [About AWS Secret Manager](#about-aws-secret-manager)
+  - [F - RDS PostgreSQL DB: Create DB schema and populate dev data](#f---rds-postgresql-db-create-db-schema-and-populate-dev-data)
   - [G - Deploy serverless web-app](#g---deploy-serverless-web-app)
     - [AWS App runner](#aws-app-runner)
 
 The best practice is to apply changes through CICD pipeline only. However for bootstraping your terraform backend and setting up your first IAM admin user you will need to apply changes outside a CICD Pipeline, this is what is shown in 1, 3.A & 3.B.
 
-We segment environments(dev/stage/prod) using separated directories. Each directory has its own `terraform.state` file stored in s3, this is a best practice set to limit damages in case in errors. Also, the user who is running the terraform code does not need permission for the entire infrastructure but only for the resources he is trying to update.
+## 1 - Environments segmentation
+
+In this hands-on we leverage AWS Organization and segment environments(dev/stage/prod) using separate accounts. Each module has its own `terraform.state` file stored in s3, this is a best practice set to limit damages in case in errors. Also, the user who is running the terraform code does not need permission for the entire infrastructure but only for the resources he is trying to update.
+
+For each environment the below file structure will be created in s3:
+
+```text
+├── global
+│   ├── iam
+│   │   └── .tfstate
+│   ├── s3
+│   │   └── .tfstate
+├── <env>
+│   ├── data-storage
+│   │   └── .tfstate
+│   ├── security_groups
+│   │   └── .tfstate
+│   ├── services
+│   │   └── .tfstate
+│   └── vpc
+│       └── .tfstate
+```
 
 ## 1 - [Optional] If you have a new AWS account
 
@@ -207,7 +230,9 @@ aws_session_token=<your session token>
 
 ### C - Create VPC
 
-It's best practice to create 1 VPC per application that you want to deploy and ideally 1 account per app, per envrionement to limit blast radius.
+If you are new to this, a goood explanation of what VPCs are is detailed in [AWS VPC Core Concepts in an Analogy and Guide](https://start.jcolemorrison.com/aws-vpc-core-concepts-analogy-guide/).
+
+It's [best practice](https://www.hyperglance.com/blog/aws-vpc-security-best-practices/) to create 1 VPC per application that you want to deploy and ideally 1 account per app, per environment to limit blast radius.
 
 module paths:
 
@@ -222,7 +247,7 @@ Resources added:
 - Create subnet route tables
 - Create route table associations
 
-### D - Create security groups (firewalls at instance level)
+### D - Create security groups (instance-level firewalls)
 
 module paths:
 
@@ -243,9 +268,18 @@ module paths:
 
 Resources added:
 
-- Create a managed PostgresDB with RDS
+- Create db credentials in AWS Secret Manager
+- Create a managed PostgresDB with RDS (multi-AZ in prod only)
 - Attach the previously created security-group to the DB
 - Associate DB to private subnets in order to avoid inbound/outbound traffic with the internet
+
+#### About AWS Secret Manager
+
+There are a few benefits we get from using AWS Secrets Manager, the sensitive data won't be written as plain text in your application code or in the .tfstate files.
+
+Note that secrets can be injected at task definition in ECS/EKS but whilst passing secrets to your application through the filesystem or environment variables is common, it should be avoided when possible and the Secret Manager API should be used directly (cf [Google best practices](https://cloud.google.com/secret-manager/docs/best-practices#coding_practices))
+
+This comes at the cost that our application is not cloud-agnostic anymore since we have AWS API calls in the application code. Also at the time of this writing AWS App Runner doesn't support secrets injection ([cf open issue](https://github.com/aws/apprunner-roadmap/issues/6))
 
 ### F - RDS PostgreSQL DB: Create DB schema and populate dev data
 
