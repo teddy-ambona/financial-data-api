@@ -28,6 +28,11 @@ variable "allocated_storage" {
   description = "size of the DB"
 }
 
+variable "db_username" {
+  type        = string
+  description = "DB username"
+}
+
 # Allow fetching VPC id from the state file
 data "terraform_remote_state" "sg" {
   backend = "s3"

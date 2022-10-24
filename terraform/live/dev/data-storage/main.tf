@@ -1,10 +1,40 @@
+# Create a random DB password
+resource "random_password" "db_password" {
+  length  = 16
+  special = true
+  numeric = true
+  upper   = true
+  lower   = true
+}
+
+# Add DB credentials to AWS Secrets Manager
+resource "aws_secretsmanager_secret" "db_credentials" {
+  name        = "db/credentials"
+  description = "Credentials for the RDS Postgres DB"
+  tags = {
+    Terraform   = "true"
+    Environment = local.environment
+  }
+}
+
+# Create a new secret version
+resource "aws_secretsmanager_secret_version" "db_credentials" {
+  secret_id     = aws_secretsmanager_secret.db_credentials.id
+  secret_string = <<EOF
+{
+  "DB_USERNAME": "${var.db_username}",
+  "DB_PASSWORD": "${random_password.db_password.result}"
+}
+EOF
+}
+
 module "postgres_db" {
   source     = "terraform-aws-modules/rds/aws"
   version    = "5.0.3"
   identifier = "${local.environment}-demodb"
 
   engine         = "postgres"
-  engine_version = "14.2"
+  engine_version = "14.3"
 
   # DB instance which supports encryption
   instance_class = var.instance_class
@@ -13,7 +43,8 @@ module "postgres_db" {
   allocated_storage = var.allocated_storage
 
   db_name  = "market_data"
-  username = "postgres"
+  username = var.db_username
+  password = random_password.db_password.result
   port     = "5432"
 
   iam_database_authentication_enabled = true

@@ -28,6 +28,7 @@ include "envcommon" {
 # For development, we want to specify smaller instance classes and storage, so we specify override parameters here. These
 # inputs get merged with the common inputs from the root and the envcommon terragrunt.hcl
 inputs = {
+  db_username       = "postgres"
   instance_class    = "db.t3.micro"
   allocated_storage = 20
 }

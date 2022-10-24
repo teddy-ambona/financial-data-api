@@ -38,7 +38,7 @@ populate-db:
 	${IMAGE_TAG} python -c \
 	"from tests.conftest import populate_db_for_local_testing; populate_db_for_local_testing();"
 
-# Start localstack and create a secret called "test/db/credentials"
+# Start localstack and create a secret called "db/credentials"
 aws-secrets-manager:
 	docker-compose -f docker-compose.yaml up -d localstack
 	docker run --rm --entrypoint="" --network host localstack/localstack bash -c \
