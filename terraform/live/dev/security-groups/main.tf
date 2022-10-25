@@ -1,4 +1,5 @@
 #tfsec:ignore:aws-ec2-no-public-ingress-sgr
+#tfsec:ignore:aws-ec2-no-public-egress-sgr
 module "web_server_sg" {
   source  = "terraform-aws-modules/security-group/aws"
   version = "4.11.0"
@@ -9,9 +10,11 @@ module "web_server_sg" {
   ingress_cidr_blocks = ["0.0.0.0/0"]
   ingress_rules       = ["http-8080-tcp"]
 
-  # Add egress rule so that the ECS service can do "docker pull"
-  egress_cidr_blocks  = ["0.0.0.0/0"]
-  egress_rules        = ["http-8080-tcp", "https-443-tcp"]
+  # Add egress rule so that the ECS service can do "docker pull". Docker Hub does not
+  # have a list of static IP addressed so we allow all IPs. Migrating to ECR could provide
+  # better security standards.
+  egress_cidr_blocks = ["0.0.0.0/0"]
+  egress_rules       = ["http-8080-tcp", "https-443-tcp"]
 
   tags = {
     Terraform   = "true"
