@@ -1,0 +1,8 @@
+---
+APP:
+  DEBUG: true
+
+DB:
+  DB_NAME: market_data
+  DB_PORT: 5432
+  DB_HOST: dev-demodb.cpahkpubbsej.us-east-1.rds.amazonaws.com

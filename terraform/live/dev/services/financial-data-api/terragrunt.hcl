@@ -20,3 +20,15 @@ include "root" {
 include "envcommon" {
   path = "${dirname(find_in_parent_folders())}/_envcommon/financial-data-api.hcl"
 }
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Override parameters for this environment
+# ---------------------------------------------------------------------------------------------------------------------
+
+# For development, we want to specify smaller instance classes and storage, so we specify override parameters here. These
+# inputs get merged with the common inputs from the root and the envcommon terragrunt.hcl
+inputs = {
+  task_cpu       = 256  # (.25 vCPU)
+  task_memory    = 512  # (512 MB)
+  aws_log_group  = "/aws/ecs/aws-fargate"
+}

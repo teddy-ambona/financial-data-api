@@ -9,6 +9,10 @@ module "web_server_sg" {
   ingress_cidr_blocks = ["0.0.0.0/0"]
   ingress_rules       = ["http-8080-tcp"]
 
+  # Add egress rule so that the ECS service can do "docker pull"
+  egress_cidr_blocks  = ["0.0.0.0/0"]
+  egress_rules        = ["http-8080-tcp", "https-443-tcp"]
+
   tags = {
     Terraform   = "true"
     Environment = local.environment

@@ -183,6 +183,7 @@ This module performs the following operations:
 - Enforce MFA for the admin group
 - Strenghten the account passwords policy
 - Rotate credentials regularly (90 days)
+- Create ECS task role
 
 ```bash
 cd terraform/live/global/iam
@@ -353,4 +354,25 @@ psql -h <YOUR_DB_HOST_NAME> -p 5432 -d market_data -U postgres -c "SELECT * FROM
 
 ### G - Deploy serverless web-app
 
-#### AWS App runner
+#### ECS with Fargate ASG
+
+Elastic Container Services allows you to deploy containerized tasks on a cluster. In this demo I chose AWS Fargate [capacity provider](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/cluster-capacity-providers.html) for a serverless infrastructure . ECS concepts are well explained in the [Amazon ECS clusters documentation](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/clusters.html).
+
+ECS does not run or execute your container (AWS Fargate will) but only provides the control plane to manage tasks.
+
+ADD DIAGRAM HERE
+
+ecs cluster --> ecs service --> ecs task --> container (cf https://medium.com/@bradford_hamilton/deploying-containers-on-amazons-ecs-using-fargate-and-terraform-part-1-a5ab1f79cb21)
+
+module paths:
+
+- [live/dev/services/financial-data-api](live/dev/services/financial-data-api)
+- [live/prod/services/financial-data-api](live/prod/services/financial-data-api)
+
+Resources added:
+
+- Log group "/aws/ecs/aws-fargate"
+- ECS Cluster
+- ECS Service
+- ECS Task definition
+- Assign web-server security-group and role to ECS task

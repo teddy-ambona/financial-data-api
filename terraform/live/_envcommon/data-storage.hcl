@@ -33,7 +33,7 @@ variable "db_username" {
   description = "DB username"
 }
 
-# Allow fetching VPC id from the state file
+# Allow fetching security-group id from the state file
 data "terraform_remote_state" "sg" {
   backend = "s3"
 
