@@ -102,3 +102,15 @@ pip-compile:
 safety:
 	$(DBASH) \
 	"pip install -U pip && pip install safety && safety check -r requirements.txt"
+
+# Trivy image-vulnerabilities
+image-vulnerabilities:
+	docker run --rm \
+	-v /var/run/docker.sock:/var/run/docker.sock \
+	-v ${HOME}/Library/Caches:/root/.cache/ \
+	aquasec/trivy image ${IMAGE_TAG} \
+	--format table \
+	--vuln-type library \
+	--severity CRITICAL,HIGH \
+	--ignore-unfixed \
+	--exit-code 1

@@ -1,13 +1,7 @@
-# Fetch a compatible version with 3.8.* including the latest patch release
-FROM python:3.8
+# Fetch a compatible version with 3.10.* including the latest patch release
+FROM python:3.10
 
 RUN groupadd -r user && useradd -r -g user app
-
-# Upgrade packages to fix vulnerabilities found with Trivy
-RUN apt-get update -y && apt-get install -y \
-    libexpat1>=2.2.10-2+deb11u4 && \
-    libksba8>=1.5.0-3+deb11u1 && \
-    linux-libc-dev>=5.10.149-1
 
 RUN pip install pip -U && pip install pip-tools
 
