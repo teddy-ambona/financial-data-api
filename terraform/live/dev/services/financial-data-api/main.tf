@@ -57,7 +57,8 @@ resource "aws_ecs_task_definition" "service" {
   # If using the Fargate launch type, the "awsvpc" network mode is required
   network_mode = "awsvpc"
 
-  execution_role_arn       = data.terraform_remote_state.iam.outputs.ecs_service_role_arn
+  execution_role_arn       = data.terraform_remote_state.iam.outputs.ecs_task_execution_role_arn
+  task_role_arn            = data.terraform_remote_state.iam.outputs.ecs_task_role_arn
   cpu                      = var.task_cpu
   memory                   = var.task_memory
   requires_compatibilities = ["FARGATE"]

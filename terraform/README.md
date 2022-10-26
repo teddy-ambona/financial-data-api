@@ -183,6 +183,7 @@ This module performs the following operations:
 - Enforce MFA for the admin group
 - Strenghten the account passwords policy
 - Rotate credentials regularly (90 days)
+- Create ECS task execution role
 - Create ECS task role
 
 ```bash
