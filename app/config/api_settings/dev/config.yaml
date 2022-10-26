@@ -1,7 +1,7 @@
 ---
 APP:
   DEBUG: true
-  PORT: 80
+  PORT: 5000
 
 DB:
   DB_NAME: market_data
