@@ -56,7 +56,11 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = string_con
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+    logging.info(f'Connection string: {string_con}')
+
     db.init_app(app)
+
+    logging.info('Initiated app')
 
     return app
 

@@ -28,9 +28,9 @@ include "envcommon" {
 # For development, we want to specify smaller instance classes and storage, so we specify override parameters here. These
 # inputs get merged with the common inputs from the root and the envcommon terragrunt.hcl
 inputs = {
-  image_tag        = ""
+  image_tag        = "1.1.0-terraform-aws-deploy.dev.bafdfe50e2d766e3b113bfa377dae0a035bda2cc"
   image_repository = "docker.io/tambona29/financial-data-api"
-  task_cpu         = 256  # (.25 vCPU)
-  task_memory      = 512  # (512 MB)
+  task_cpu         = 256 # (.25 vCPU)
+  task_memory      = 512 # (512 MB)
   aws_log_group    = "/aws/ecs/aws-fargate"
 }

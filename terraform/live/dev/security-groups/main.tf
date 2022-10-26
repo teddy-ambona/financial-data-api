@@ -10,11 +10,11 @@ module "web_server_sg" {
   ingress_cidr_blocks = ["0.0.0.0/0"]
   ingress_rules       = ["http-80-tcp"]
 
-  # Add egress rule so that the ECS service can do "docker pull". Docker Hub does not
-  # have a list of static IP addressed so we allow all IPs. Migrating to ECR could provide
+  # Add egress rule so that the ECS service can do "docker pull" and also connect to the RDS instance.
+  # Docker Hub does not have a list of static IP addressed so we allow all IPs. Migrating to ECR could provide
   # better security standards.
   egress_cidr_blocks = ["0.0.0.0/0"]
-  egress_rules       = ["http-8080-tcp", "https-443-tcp"]
+  egress_rules       = ["http-8080-tcp", "https-443-tcp", "postgresql-tcp"]
 
   tags = {
     Terraform   = "true"
