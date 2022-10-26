@@ -311,10 +311,11 @@ git clone https://github.com/teddy-ambona/financial-data-api.git
 # Replace dev config placeholders with actual dev config.
 cd financial-data-api
 cp -r config/api_settings ./settings
-cat << EOT > settings/development/config.yaml
+cat << EOT > settings/dev/config.yaml
 ---
 APP:
   DEBUG: true
+  PORT: 80
 
 DB:
   DB_NAME: market_data
@@ -358,11 +359,12 @@ psql -h <YOUR_DB_HOST_NAME> -p 5432 -d market_data -U postgres -c "SELECT * FROM
 
 Elastic Container Services allows you to deploy containerized tasks on a cluster. In this demo I chose AWS Fargate [capacity provider](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/cluster-capacity-providers.html) for a serverless infrastructure . ECS concepts are well explained in the [Amazon ECS clusters documentation](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/clusters.html).
 
-ECS does not run or execute your container (AWS Fargate will) but only provides the control plane to manage tasks.
+ECS does not run or execute your container (AWS Fargate will) but only provides the control plane to manage tasks. Below is the general architecture of ECS with AWS Fargate.
 
-ADD DIAGRAM HERE
+<img src="../docs/img/overview_fargate.png" width="700"/>
 
-ecs cluster --> ecs service --> ecs task --> container (cf https://medium.com/@bradford_hamilton/deploying-containers-on-amazons-ecs-using-fargate-and-terraform-part-1-a5ab1f79cb21)
+*(image from [Amazon ECS launch types](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_types.html))*
+<br></br>
 
 module paths:
 

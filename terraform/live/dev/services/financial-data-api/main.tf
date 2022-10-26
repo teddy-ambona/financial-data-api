@@ -41,11 +41,11 @@ data "template_file" "app" {
   # The terragrunt_financial_data_api.json.tpl file is generated from _envcommon/financial-data-api.hcl
   template = file("./terragrunt_financial_data_api.json.tpl")
   vars = {
-    dockerhub_repository = "docker.io/tambona29/financial-data-api"
-    tag                  = "1.0.1"
-    task_cpu             = var.task_cpu
-    task_memory          = var.task_memory
-    aws_log_group        = var.aws_log_group
+    image_repository = var.image_repository
+    image_tag        = var.image_tag
+    task_cpu         = var.task_cpu
+    task_memory      = var.task_memory
+    aws_log_group    = var.aws_log_group
   }
 }
 

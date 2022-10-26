@@ -1,6 +1,7 @@
 ---
 APP:
   DEBUG: false
+  PORT: 80
 
 DB:
   DB_NAME: "PRODUCTION_DB_NAME"

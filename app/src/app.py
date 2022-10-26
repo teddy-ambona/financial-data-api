@@ -12,6 +12,11 @@ from src.blueprints.stocks import stocks
 from src.blueprints.healthcheck import healthcheck
 
 
+# Fetch config
+ENVIRONMENT = os.environ['ENVIRONMENT']
+config = safe_load(open(f'/app/settings/{ENVIRONMENT}/config.yaml', 'r'))
+
+
 class CustomJSONEncoder(JSONEncoder):
     """Allow dates to be returned in YYYY-MM-DD format."""
 
@@ -26,10 +31,6 @@ def create_app():
     app = Flask(__name__)
     app.register_blueprint(healthcheck)
     app.register_blueprint(stocks)
-
-    # Fetch config
-    ENVIRONMENT = os.environ['ENVIRONMENT']
-    config = safe_load(open(f'/app/settings/{ENVIRONMENT}/config.yaml', 'r'))
 
     # Fetch secrets from AWS Secrets Manager
     if "LOCALSTACK" in config:
@@ -55,4 +56,4 @@ def create_app():
 
 if __name__ == "__main__":
     app = create_app()
-    app.run(host='0.0.0.0')
+    app.run(host='0.0.0.0', port=config['APP']['PORT'])

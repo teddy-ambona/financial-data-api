@@ -33,6 +33,16 @@ variable "aws_log_group" {
   description = "Log group for the task"
 }
 
+variable "image_tag" {
+  type        = string
+  description = "Docker image tag"
+}
+
+variable "image_repository" {
+  type        = string
+  description = "Image repository"
+}
+
 # Allow fetching security-group id from the state file
 data "terraform_remote_state" "sg" {
   backend = "s3"
@@ -77,7 +87,7 @@ generate "task_template" {
 [
   {
     "name": "financial_data_api",
-    "image": "$${dockerhub_repository}:$${tag}",
+    "image": "$${image_repository}:$${image_tag}",
     "essential": true,
     "logConfiguration": {
       "logDriver": "awslogs",
@@ -99,7 +109,7 @@ generate "task_template" {
       {
         "name": "ENVIRONMENT",
         "value": "${local.env_vars.locals.environment}"
-      },
+      }
     ],
     "ulimits": [
       {
