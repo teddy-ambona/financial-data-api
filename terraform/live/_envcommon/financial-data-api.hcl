@@ -99,8 +99,8 @@ generate "task_template" {
     },
     "portMappings": [
       {
-        "containerPort": 5000,
-        "hostPort": 5000,
+        "containerPort": 80,
+        "hostPort": 80,
         "protocol": "tcp"
       }
     ],
@@ -109,6 +109,10 @@ generate "task_template" {
       {
         "name": "ENVIRONMENT",
         "value": "${local.env_vars.locals.environment}"
+      },
+      {
+        "name": "AWS_DEFAULT_REGION",
+        "value": "${local.env_vars.locals.aws_region}"
       }
     ],
     "ulimits": [

@@ -1,5 +1,4 @@
-# Create IAM Role for ECS Execution
-# The execution role is the IAM role that executes ECS actions such as pulling the image and storing the application logs in cloudwatch.
+# Create IAM policy document with trusted entities
 data "aws_iam_policy_document" "ecs_role" {
   version = "2012-10-17"
   statement {
@@ -14,6 +13,8 @@ data "aws_iam_policy_document" "ecs_role" {
   }
 }
 
+# Create IAM Role for ECS Execution
+# The execution role is the IAM role that executes ECS actions such as pulling the image and storing the application logs in cloudwatch.
 resource "aws_iam_role" "ecs_task_execution_role" {
   name               = "ecs-financial-data-api-execution-role"
   assume_role_policy = data.aws_iam_policy_document.ecs_role.json
@@ -49,6 +50,13 @@ resource "aws_iam_policy" "ecs_task_policy" {
           "secretsmanager:GetSecretValue",
           "secretsmanager:DescribeSecret",
           "secretsmanager:ListSecretVersionIds"
+        ]
+        Effect   = "Allow"
+        Resource = "*"
+      },
+      {
+        Action = [
+          "rds-db:connect",
         ]
         Effect   = "Allow"
         Resource = "*"

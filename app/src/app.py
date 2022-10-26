@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 import datetime as dt
 
 import boto3
@@ -11,6 +12,10 @@ from src.models import db
 from src.blueprints.stocks import stocks
 from src.blueprints.healthcheck import healthcheck
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s | %(name)s | %(levelname)s | %(message)s'
+)
 
 # Fetch config
 ENVIRONMENT = os.environ['ENVIRONMENT']
@@ -33,6 +38,7 @@ def create_app():
     app.register_blueprint(stocks)
 
     # Fetch secrets from AWS Secrets Manager
+    logging.info('Retrieving DB credentials from AWS Secrets Manager')
     if "LOCALSTACK" in config:
         boto_client = boto3.client('secretsmanager', endpoint_url=config['LOCALSTACK']['ENDPOINT_URL'])
     else:
@@ -40,6 +46,7 @@ def create_app():
 
     response = boto_client.get_secret_value(SecretId='db/credentials')
     db_secrets = json.loads(response['SecretString'])
+    logging.info('Sucessfully retrieved DB credentials from AWS Secrets Manager')
 
     # Set up flask config
     app.config.update(config['APP'])
