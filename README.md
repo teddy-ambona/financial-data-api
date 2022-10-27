@@ -1,20 +1,26 @@
 # financial-data-api &middot; ![ci](https://github.com/teddy-ambona/financial-data-api/actions/workflows/app_code_cicd.yml/badge.svg)
 
-- [1 - Prerequisites](#1---prerequisites)
-- [2 - Quickstart](#2---quickstart)
-- [3 - Project file structure](#3---project-file-structure)
-- [4 - CICD](#4---cicd)
-  - [A - App CICD overview](#a---app-cicd-overview)
+- [1 - Architecture](#1---architecture)
+  - [A - App CICD architecture](#a---app-cicd-architecture)
+- [2 - Prerequisites](#2---prerequisites)
+- [3 - Quickstart](#3---quickstart)
+  - [A - Run local stack](#a---run-local-stack)
+- [4 - Project file structure](#4---project-file-structure)
+- [5 - CICD](#5---cicd)
+  - [A - App CICD workflow](#a---app-cicd-workflow)
   - [B - Running the CICD pipeline locally](#b---running-the-cicd-pipeline-locally)
-- [5 - Docker image build pattern](#5---docker-image-build-pattern)
+- [6 - Docker image build pattern](#6---docker-image-build-pattern)
   - [A - SemVer2](#a---semver2)
   - [B - Version bump](#b---version-bump)
-- [6 - Testing framework](#6---testing-framework)
+- [7 - Testing framework](#7---testing-framework)
   - [A - GIVEN-WHEN-THEN (Martin Fowler)](#a---given-when-then-martin-fowler)
   - [B - Four-Phase Test (Gerard Meszaros)](#b---four-phase-test-gerard-meszaros)
-  - [C - Debugging the code with VS code remote-container extension](#c---debugging-the-code-with-vs-code-remote-container-extension)
+  - [C - Debugging the code with VS Code remote-container extension](#c---debugging-the-code-with-vs-code-remote-container-extension)
+- [8 - Gunicorn application server and Nginx reverse proxy](#8---gunicorn-application-server-and-nginx-reverse-proxy)
 
-This repo is a demo project for dockerized flask applications(REST API). This simplified API exposes GET endpoints that allow you to pull stock prices and trading indicators. What is covered in this repo:
+This repo is a demo project for dockerized flask applications (REST API). This simplified API exposes GET endpoints that allow you to pull stock prices and trading indicators. What is covered in this repo:
+
+**Application code:**
 
 - Github Actions CICD:
   - Static analysis: flake8, pydocstyle
@@ -26,9 +32,16 @@ This repo is a demo project for dockerized flask applications(REST API). This si
 - Makefile template
 - Flask blueprints
 - Flask-SQLAlchemy implementation
+- Nginx (reverse proxy) and Gunicorn (WSGI) implementation
 - Dependency injection
 
-## 1 - Prerequisites
+## 1 - Architecture
+
+### A - App CICD architecture
+
+<img src="./docs/img/app_cicd_architecture.png" width="700"/>
+
+## 2 - Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/)
 - [Docker Compose CLI plugin](https://docs.docker.com/compose/install/compose-plugin/)
@@ -36,29 +49,31 @@ This repo is a demo project for dockerized flask applications(REST API). This si
 
 > The API doesn't require python installed on your machine.
 
-## 2 - Quickstart
+## 3 - Quickstart
+
+### A - Run local stack
 
 Run the following commands to:
 
 - Build the Docker image
-- Run the app and db services
+- Run the app and db services locally
 - Populate the db credentials secret in AWS Secrets Manager (localstack)
 - Populate DB with TSLA and AMZN stock prices
 
 ```bash
-make build up
+cd app & make build-app build-nginx up
 ```
 
 Verify the API is running:
 
 ```bash
-curl -I http://127.0.0.1:5000/_healthcheck
+curl -I http://localhost/_healthcheck
 ```
 
 Get resampled data
 
 ```bash
-$ curl -G -d 'interval=1' -d 'frequency=Annual' http://127.0.0.1:5000/stocks/time-series/AMZN
+$ curl -G -d 'interval=1' -d 'frequency=Annual' http://localhost/stocks/time-series/AMZN
 [
   {
     "close": 92.392,
@@ -99,7 +114,7 @@ $ curl -G -d 'interval=1' -d 'frequency=Annual' http://127.0.0.1:5000/stocks/tim
 ]
 ```
 
-## 3 - Project file structure
+## 4 - Project file structure
 
 ```text
 .
@@ -126,8 +141,16 @@ In [./app](./app)
 │       │   └── config.yaml
 │       ├── production
 │       │   └── config.yaml
-│       └── test
-│           └── config.yaml
+│       ├── test
+│       │    └── config.yaml
+│       └── gunicorn.py
+├── docker
+│   ├── app
+│   │   └── Dockerfile
+│   ├── nginx
+│   │   ├── Dockerfile
+│   │   └── nginx.conf
+│   └── docker-compose.yaml
 ├── src
 │   ├── __init__.py
 │   ├── app.py
@@ -148,18 +171,14 @@ In [./app](./app)
 │       ├── __init__.py
 │       └── test_helpers.py
 ├── .dockerignore
-├── docker-compose.yaml
-├── Dockerfile
 ├── Makefile
 ├── requirements.in
 ├── requirements.txt
 ```
 
-## 4 - CICD
+## 5 - CICD
 
-### A - App CICD overview
-
-<img src="./docs/img/app_cicd_architecture.png" width="700"/>
+### A - App CICD workflow
 
 <img src="./docs/img/CICD.png" width="700"/>
 <br></br>
@@ -173,7 +192,8 @@ In [./app](./app)
 - **image-vulnerabilities:** Image vulnerablities scanner(Trivy)
 - **unit-tests:** Test the smallest piece of code(functions) that can be isolated
 - **integration-tests:** Series of tests which call the API
-- **push-to-registry:** Push the Docker image to Docker Hub
+- **push-app-image-to-registry:** Push the application server Docker image to [Docker Hub](https://hub.docker.com/r/tambona29/financial-data-api)
+- **push-nginx-image-to-registry:** Push the custom Nginx Docker image to [Docker Hub](https://hub.docker.com/repository/docker/tambona29/nginx-demo)
 
 > Note that the last job should be skipped when running the pipeline locally.
 This is ensured using `if: ${{ !env.ACT }}` in the `push-to-registry` job.
@@ -189,7 +209,7 @@ Example:
 make app-cicd  # Run the full app CICD pipeline without pushing to Docker Hub
 ```
 
-In `secrets.txt`:
+These commands require `secrets.txt` with this content:
 
 ```bash
 GITHUB_TOKEN=<YOUR_PAT_TOKEN>
@@ -206,7 +226,9 @@ make pydocstyle
 make tests
 ```
 
-## 5 - Docker image build pattern
+Some jobs such as `image-vulnerabilities` can be run in isolation using the act `-j <job-name>` command (example `-j image-vulnerabilities`).
+
+## 6 - Docker image build pattern
 
 The requirements are:
 
@@ -230,7 +252,7 @@ The requirements are:
 
 Each PR should contain a new version of the `IMAGE_VERSION` in [.github/workflows/app_code_cicd.yml](.github/workflows/app_code_cicd.yml#L6)
 
-## 6 - Testing framework
+## 7 - Testing framework
 
 ### A - [GIVEN-WHEN-THEN](https://martinfowler.com/bliki/GivenWhenThen.html) (Martin Fowler)
 
@@ -247,7 +269,7 @@ Each PR should contain a new version of the `IMAGE_VERSION` in [.github/workflow
 *(image from [Four-Phase Test](http://xunitpatterns.com/Four%20Phase%20Test.html))*
 <br></br>
 
-For integration testing, the *Setup* phase consists in truncating and repopulating the `market_data` DB (cf [db_fixture](app\tests\conftest.py#L52))
+For integration testing, the *Setup* phase consists in truncating and repopulating the `market_data` DB (cf [db_fixture](app/tests/conftest.py#L52))
 
 ### C - Debugging the code with VS Code remote-container extension
 
@@ -259,7 +281,7 @@ in `.devcontainer/devcontainer.json`
 {
   "name": "Existing Dockerfile",
   "context": "../app",
-  "dockerFile": "../app/Dockerfile",
+  "dockerFile": "../app/docker/app/Dockerfile",
 
   "runArgs": [ "--network=host"],
 
@@ -303,3 +325,30 @@ in `.vscode/launch.json`
 ```
 
 In addition to this I have also written another [documentation](https://github.com/teddy-ambona/developer-workstation#debugging-inside-a-docker-container) for remote-container extension that can be quite handy.
+
+## 8 - Gunicorn application server and Nginx reverse proxy
+
+From the [Flask documentation](https://flask.palletsprojects.com/en/1.1.x/deploying/):
+
+> "While lightweight and easy to use, Flask’s built-in server is not suitable for production as it doesn’t scale well."
+
+Hence we need a more robust web-server than the flask web server, and the answer is: [Gunicorn](https://gunicorn.org/) and [Nginx](https://www.nginx.com/resources/glossary/nginx/). Gunicorn is a Python WSGI HTTP Server for UNIX. It's a pre-fork worker model. The Gunicorn server is broadly compatible with various web frameworks, simply implemented, light on server resources, and fairly speedy.
+
+With Gunicorn as a web server our app is now more robust and scalable, however we need a way to balance the load to the Gunicorn workers, that's when Nginx is quite useful. Nginx is also a web server but more commonly used as a reverse proxy. **Thereforce Gunicorn acts as an application server whilst Nginx behaves as a reverse proxy**
+
+The terminology is well defined in [this article](https://realpython.com/django-nginx-gunicorn/#replacing-wsgiserver-with-gunicorn):
+
+>- **Flask is a web framework.** It lets you build the core web application that powers the actual content on the site. It handles HTML rendering, authentication, administration, and backend logic.
+>
+>- **Gunicorn is an application server.** It translates HTTP requests into something Python can understand. Gunicorn implements the Web Server Gateway Interface (WSGI), which is a standard interface between web server software and web applications.
+>
+>- **Nginx is a web server.** It’s the public handler, more formally called the reverse proxy, for incoming requests and scales to thousands of simultaneous connections.
+
+If you still struggle to understand what Nginx can achieve, check out this [repo from AWS Labs](https://github.com/awslabs/ecs-nginx-reverse-proxy/tree/master/reverse-proxy).
+
+Here’s a diagram illustrating how Nginx fits into a Flask web application:
+
+<img src="./docs/img/gunicorn_nginx_architecture.png" width="700"/>
+
+*(image from [How to Configure NGINX for a Flask Web Application](https://www.patricksoftwareblog.com/how-to-configure-nginx-for-a-flask-web-application/))*
+<br></br>
