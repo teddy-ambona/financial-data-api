@@ -352,3 +352,10 @@ Here’s a diagram illustrating how Nginx fits into a Flask web application:
 
 *(image from [How to Configure NGINX for a Flask Web Application](https://www.patricksoftwareblog.com/how-to-configure-nginx-for-a-flask-web-application/))*
 <br></br>
+
+When deployed to AWS our app will look similar to the illustration below, with many servers, each running a Nginx web server and many Gunicorn workers
+
+<img src="./docs/img/gunicorn_workers.png" width="700"/>
+
+*(image from [A guide to deploying Machine/Deep Learning model(s) in Productionn](https://medium.com/@maheshkkumar/a-guide-to-deploying-machine-deep-learning-model-s-in-production-e497fd4b734a))*
+<br></br>
