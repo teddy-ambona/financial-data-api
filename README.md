@@ -187,9 +187,9 @@ In [./app](./app)
 - **flake8:** Lints .py files in the repo
 - **pydocstyle:** Checks compliance with Python docstring conventions
 - **safety:** python packages vulnerabilities scanner
-- **image-misconfiguration:** Detect configuration issues in Dockerfile(Trivy)
-- **build:** Build Docker image and push it to the pipeline artifacts
-- **image-vulnerabilities:** Image vulnerablities scanner(Trivy)
+- **image-misconfiguration:** Detect configuration issues in app Dockerfile (Trivy)
+- **build:** Build app Docker image and push it to the pipeline artifacts
+- **image-vulnerabilities:** App image vulnerablities scanner (Trivy)
 - **unit-tests:** Test the smallest piece of code(functions) that can be isolated
 - **integration-tests:** Series of tests which call the API
 - **push-app-image-to-registry:** Push the application server Docker image to [Docker Hub](https://hub.docker.com/r/tambona29/financial-data-api)

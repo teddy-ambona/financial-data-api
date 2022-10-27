@@ -224,7 +224,7 @@ jobs:
           name: flask-app
           path: /tmp
 
-      - name: Load Docker image
+      - name: Load Docker image to leverage caching
         run: |
           docker load --input /tmp/flask-app.tar
           docker image ls -a
@@ -239,6 +239,7 @@ jobs:
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
         with:
           context: ./app
+          file: ./app/docker/app/Dockerfile
           push: true
           tags: ${{ needs.build.outputs.IMAGE_TAG }}
 
@@ -269,4 +270,4 @@ jobs:
             context: ./app
             file: ./app/docker/nginx/Dockerfile
             push: true
-            tags: ${NGINX_DOCKER_REPOSITORY}:${NGINX_IMAGE_VERSION}${{ needs.build.outputs.SUFFIX }}
+            tags: ${{ env.NGINX_DOCKER_REPOSITORY }}:${{ env.NGINX_IMAGE_VERSION }}${{ needs.build.outputs.SUFFIX }}
