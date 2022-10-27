@@ -20,4 +20,5 @@ COPY tests ./tests/
 # Using non-root user to reduce vulnerabilities
 USER app
 
-ENTRYPOINT ["python", "-m", "src.app"]
+# Use Gunicorn as production server
+ENTRYPOINT ["gunicorn", "-c", "config/gunicorn.py"]

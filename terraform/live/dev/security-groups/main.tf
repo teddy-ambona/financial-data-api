@@ -8,7 +8,7 @@ module "web_server_sg" {
   description         = "Security group for web-server"
   vpc_id              = data.terraform_remote_state.vpc.outputs.vpc_id
   ingress_cidr_blocks = ["0.0.0.0/0"]
-  ingress_rules       = ["http-80-tcp"]
+  ingress_rules       = ["http-8080-tcp"]
 
   # Add egress rule so that the ECS service can do "docker pull" and also connect to the RDS instance.
   # Docker Hub does not have a list of static IP addressed so we allow all IPs. Migrating to ECR could provide

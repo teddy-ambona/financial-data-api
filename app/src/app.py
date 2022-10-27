@@ -67,4 +67,5 @@ def create_app():
 
 if __name__ == "__main__":
     app = create_app()
+    # Specifying an address:port of "0.0.0.0:<port>"" makes your server viewable to the outside world
     app.run(host='0.0.0.0', port=config['APP']['PORT'])

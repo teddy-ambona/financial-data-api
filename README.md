@@ -37,15 +37,19 @@ This repo is a demo project for dockerized flask applications(REST API). This si
 - Makefile template
 - Flask blueprints
 - Flask-SQLAlchemy implementation
+- Nginx (reverse proxy) and Gunicorn (WSGI) implementation
 - Dependency injection
 
 **Infrastructure code:**
 
-- Multi AZ serverless architecture: AWS Organizations (dev/ staging/prod OUs), VPC, Security-groups, Application Load Balancer, RDS DB, S3, IAM configuration (RBAC), AWS Cognito, AWS Secrets Manager
-- 3 serverless methods are showcased for deploying the web-server:
-  - AWS App runner
+- Multi AZ serverless architecture:
+  - AWS Organizations (dev/ staging/prod OUs)
+  - VPC, Security-groups
+  - Application Load Balancer
+  - RDS DB, S3
+  - IAM configuration (RBAC)
+  - AWS Secrets Manager
   - ECS with Fargate ASG
-  - EKS with Fargate ASG
 - Terragrunt patterns to keep the code DRY across environments (dev, staging, prod)
 - Security scanner (tfsec), static analysis to enforce best practices (tflint, validate, fmt)
 - Blue/green deployment triggered from Git CI/CD
@@ -402,7 +406,29 @@ in `.vscode/launch.json`
 
 In addition to this I have also written another [documentation](https://github.com/teddy-ambona/developer-workstation#debugging-inside-a-docker-container) for remote-container extension that can be quite handy.
 
-## 8 - Deployment to AWS with Terraform
+## 8 - Gunicorn application server and Nginx reverse proxy
+
+From the [Flask documentation](https://flask.palletsprojects.com/en/1.1.x/deploying/):
+
+> "While lightweight and easy to use, Flask’s built-in server is not suitable for production as it doesn’t scale well."
+
+Hence we need a more robust web-server than the flask web server, and the answer is: [Gunicorn](https://gunicorn.org/) and [Nginx](https://www.nginx.com/resources/glossary/nginx/). Gunicorn is a Python WSGI HTTP Server for UNIX. It's a pre-fork worker model. The Gunicorn server is broadly compatible with various web frameworks, simply implemented, light on server resources, and fairly speedy.
+
+With Gunicorn as a web server our app is now more robust and scalable, however we need a way to balance the load to the Gunicorn workers, that's when Nginx is quite useful. Nginx is also a web server but more commonly used as a reverse proxy. **Thereforce Gunicorn acts as an application server whilst Nginx behaves as a reverse proxy**
+
+The terminology is well defined in [this article](https://realpython.com/django-nginx-gunicorn/#replacing-wsgiserver-with-gunicorn):
+
+>- **Flask is a web framework.** It lets you build the core web application that powers the actual content on the site. It handles HTML rendering, authentication, administration, and backend logic.
+>
+>- **Gunicorn is an application server.** It translates HTTP requests into something Python can understand. Gunicorn implements the Web Server Gateway Interface (WSGI), which is a standard interface between web server software and web applications.
+>
+>- **Nginx is a web server.** It’s the public handler, more formally called the reverse proxy, for incoming requests and scales to thousands of simultaneous connections.
+
+If you still struggle to understand what Nginx can achieve, check out this [repo from AWS Labs](https://github.com/awslabs/ecs-nginx-reverse-proxy/tree/master/reverse-proxy).
+
+# [Add gunicorn workers diagram here]
+
+## 9 - Deployment to AWS with Terraform
 
 IMPORTANT: Following these instructions will deploy code into your AWS account. All of this qualifies for the AWS Free Tier, but if you've already used up your credits, running this code may cost you money. Also this repo is meant to be deployed to your sandbox environment.
 
@@ -446,3 +472,19 @@ A good architecture design can be facilitated by following these [AWS General de
 - Allow for evolutionary architectures
 - Drive architectures using data
 - Improve through game days
+
+## 10 - Improvements
+
+Taking a Flask app from development to production is a demanding but rewarding process. There are a couple of areas that I have omitted but would need to be addressed in a real production environment such as:
+
+- Securing the endpoints with HTTPS ([AWS Certificate Manager](https://aws.amazon.com/certificate-manager/))
+- User management and authentication for the backend API ([AWS Cognito](https://aws.amazon.com/cognito/))
+- Adding monitoring/tracing tools (with Prometheus and Grafana for instance)
+- Protection from common web exploits ([Web Application Firewall](https://aws.amazon.com/marketplace/solutions/security/web-application-firewall))
+- Network protections for all of your Amazon Virtual Private Clouds (VPCs) from layer 3 to layer 7 ([AWS Network Firewall](https://aws.amazon.com/network-firewall/?whats-new-cards.sort-by=item.additionalFields.postDateTime&whats-new-cards.sort-order=desc))
+- VPC interface endpoints to avoid exposing data to the internet ([AWS PrivateLink](https://aws.amazon.com/privatelink/))
+- ML powered anomaly detection in VPC flow logs / Cloudtrail logs / DNS logs / EKS audit logs ([Amazon Guard Duty](https://aws.amazon.com/guardduty/))
+
+## 11 - Useful resources
+
+- [Docker Best Practices for Python Developers](https://testdriven.io/blog/docker-best-practices/)
