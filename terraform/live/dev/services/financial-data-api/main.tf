@@ -37,15 +37,24 @@ module "ecs" {
 }
 
 # Get template container definition
+# This task definition will tell ECS to always launch the NGINX reverse proxy container, and the
+# application container on the same instance, and to link them together.
+# The application container does not have a publically accessible port, so there is no way for a vulnerability
+# scanning tool to directly access the application. Instead all traffic will be sent to NGINX, and NGINX is
+# configured to only forward traffic to your application container
 data "template_file" "app" {
   # The terragrunt_financial_data_api.json.tpl file is generated from _envcommon/financial-data-api.hcl
   template = file("./terragrunt_financial_data_api.json.tpl")
   vars = {
-    image_repository = var.image_repository
-    image_tag        = var.image_tag
-    task_cpu         = var.task_cpu
-    task_memory      = var.task_memory
-    aws_log_group    = var.aws_log_group
+    aws_log_group          = var.aws_log_group
+    app_image_tag          = var.app_image_tag
+    app_image_repository   = var.app_image_repository
+    app_container_cpu      = var.app_container_cpu
+    app_container_memory   = var.app_container_memory
+    nginx_image_tag        = var.nginx_image_tag
+    nginx_image_repository = var.nginx_image_repository
+    nginx_container_cpu    = var.nginx_container_cpu
+    nginx_container_memory = var.nginx_container_memory
   }
 }
 
@@ -53,8 +62,9 @@ data "template_file" "app" {
 resource "aws_ecs_task_definition" "service" {
   family = "financial_data_api"
 
-  # Set network mode to "awsvpc" so that the task is allocated an elastic network interface
+  # Set network mode to "awsvpc" so that each container is allocated an elastic network interface
   # If using the Fargate launch type, the "awsvpc" network mode is required
+  # cf https://tutorialsdojo.com/ecs-network-modes-comparison/
   network_mode = "awsvpc"
 
   execution_role_arn       = data.terraform_remote_state.iam.outputs.ecs_task_execution_role_arn
@@ -63,6 +73,7 @@ resource "aws_ecs_task_definition" "service" {
   memory                   = var.task_memory
   requires_compatibilities = ["FARGATE"]
   container_definitions    = data.template_file.app.rendered
+
   tags = {
     Terraform   = "true"
     Environment = local.environment

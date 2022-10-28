@@ -271,3 +271,4 @@ jobs:
             file: ./app/docker/nginx/Dockerfile
             push: true
             tags: ${{ env.NGINX_DOCKER_REPOSITORY }}:${{ env.NGINX_IMAGE_VERSION }}${{ needs.build.outputs.SUFFIX }}
+            target: image-ecs

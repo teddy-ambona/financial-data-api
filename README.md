@@ -34,7 +34,7 @@ This repo is a demo project for dockerized flask applications (REST API). This s
   - Static analysis: flake8, pydocstyle
   - Image misconfiguration/vulnerabilities (Trivy), passing artifacts between jobs
   - Testing patterns with Pytests (unit / integration)
-  - Docker image build and distribution pattern
+  - Docker image multi-stage build and distribution pattern
 - Docker PostgreSQL DB setup for local testing
 - Services configuration with Docker Compose
 - Makefile template
@@ -511,3 +511,4 @@ Taking a Flask app from development to production is a demanding but rewarding p
 ## 11 - Useful resources
 
 - [Docker Best Practices for Python Developers](https://testdriven.io/blog/docker-best-practices/)
+- [How Amazon ECS manages CPU and memory resources](https://aws.amazon.com/blogs/containers/how-amazon-ecs-manages-cpu-and-memory-resources/)

@@ -28,9 +28,21 @@ include "envcommon" {
 # For development, we want to specify smaller instance classes and storage, so we specify override parameters here. These
 # inputs get merged with the common inputs from the root and the envcommon terragrunt.hcl
 inputs = {
-  image_tag        = "1.1.0-terraform-aws-deploy.dev.5f1b844e269e8e160b44f9c72ceb21202ccca509"
-  image_repository = "docker.io/tambona29/financial-data-api"
-  task_cpu         = 1024 # (1 vCPU)
-  task_memory      = 512 # (512 MB)
-  aws_log_group    = "/aws/ecs/aws-fargate"
+  # App
+  app_image_tag        = "1.2.0-terraform-aws-deploy.dev.b11b9a4d1b199b2034c6059ed4bf6201028fdee0"
+  app_image_repository = "docker.io/tambona29/financial-data-api"
+  app_container_cpu    = 512 # (.5 vCPU)
+  app_container_memory = 1024 # (1 GB)
+
+  # Nginx
+  nginx_image_tag        = "1.1.0-terraform-aws-deploy.dev.e404958dc4ba3aaec569af68a6f77e348016062b"
+  nginx_image_repository = "docker.io/tambona29/nginx-demo"
+  nginx_container_cpu    = 512 # (.5 vCPU)
+  nginx_container_memory = 1024 # (1 GBs)
+
+  # https://aws.amazon.com/premiumsupport/knowledge-center/ecs-cpu-allocation/
+  task_cpu    = 1024 # (1 vCPU)
+  task_memory = 2048 # (2 GB)
+
+  aws_log_group    = "/aws/ecs/aws-fargate-demo/application-stack"
 }

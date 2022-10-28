@@ -18,29 +18,59 @@ locals {
   environment    = "${local.env_vars.locals.environment}"
 }
 
-variable "task_cpu" {
+variable "aws_log_group" {
+  type        = string
+  description = "Log group for the application"
+}
+
+variable "app_container_cpu" {
   type        = number
-  description = "Number of vCPU for the task"
+  description = "Number of vCPU for the app container"
+}
+
+variable "app_container_memory" {
+  type        = number
+  description = "Number of vMemory for the app container"
+}
+
+variable "app_image_tag" {
+  type        = string
+  description = "App Docker image tag"
+}
+
+variable "app_image_repository" {
+  type        = string
+  description = "App image repository"
+}
+
+variable "nginx_container_cpu" {
+  type        = number
+  description = "Number of vCPU for the Nginx container"
+}
+
+variable "nginx_container_memory" {
+  type        = number
+  description = "Number of vMemory for the Nginx container"
+}
+
+variable "nginx_image_tag" {
+  type        = string
+  description = "Nginx Docker image tag"
+}
+
+variable "nginx_image_repository" {
+  type        = string
+  description = "Nginx image repository"
 }
 
 variable "task_memory" {
-  type        = number
-  description = "Number of vMemory for the task"
+  type        = string
+  description = "Total memory allocated for the task"
 }
 
-variable "aws_log_group" {
+variable "task_cpu" {
   type        = string
-  description = "Log group for the task"
-}
-
-variable "image_tag" {
-  type        = string
-  description = "Docker image tag"
-}
-
-variable "image_repository" {
-  type        = string
-  description = "Image repository"
+  description = "Total number of vCPU allocated for the task"
 }
 
 # Allow fetching security-group id from the state file
@@ -85,26 +115,53 @@ generate "task_template" {
   disable_signature = true
   contents          = <<EOF
 [
-  {
-    "name": "financial_data_api",
-    "image": "$${image_repository}:$${image_tag}",
+    {
+    "name": "nginx",
+    "image": "$${nginx_image_repository}:$${nginx_image_tag}",
     "essential": true,
     "logConfiguration": {
       "logDriver": "awslogs",
       "options": {
         "awslogs-region": "${local.env_vars.locals.aws_region}",
-        "awslogs-stream-prefix": "financial-data-api-service",
+        "awslogs-stream-prefix": "nginx",
+        "awslogs-group": "$${aws_log_group}"
+      }
+    },
+    "portMappings": [
+      {
+        "containerPort": 80,
+        "protocol": "tcp"
+      }
+    ],
+    "cpu": $${nginx_container_cpu},
+    "ulimits": [
+      {
+        "name": "nofile",
+        "softLimit": 65536,
+        "hardLimit": 65536
+      }
+    ],
+    "memory": $${nginx_container_memory}
+  },
+  {
+    "name": "flask-app",
+    "image": "$${app_image_repository}:$${app_image_tag}",
+    "essential": true,
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-region": "${local.env_vars.locals.aws_region}",
+        "awslogs-stream-prefix": "app-server",
         "awslogs-group": "$${aws_log_group}"
       }
     },
     "portMappings": [
       {
         "containerPort": 5000,
-        "hostPort": 5000,
         "protocol": "tcp"
       }
     ],
-    "cpu": $${task_cpu},
+    "cpu": $${app_container_cpu},
     "environment": [
       {
         "name": "ENVIRONMENT",
@@ -122,9 +179,7 @@ generate "task_template" {
         "hardLimit": 65536
       }
     ],
-    "mountPoints": [],
-    "memory": $${task_memory},
-    "volumesFrom": []
+    "memory": $${app_container_memory}
   }
 ]
 EOF
