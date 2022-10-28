@@ -24,6 +24,8 @@ flask-sqlalchemy==2.5.1
     # via -r requirements.in
 greenlet==1.1.2
     # via sqlalchemy
+gunicorn==20.1.0
+    # via -r requirements.in
 iniconfig==1.1.1
     # via pytest
 itsdangerous==2.1.2
@@ -83,3 +85,6 @@ urllib3==1.26.12
     # via botocore
 werkzeug==2.1.2
     # via flask
+
+# The following packages are considered to be unsafe in a requirements file:
+# setuptools

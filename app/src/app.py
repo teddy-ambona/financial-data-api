@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 import datetime as dt
 
 import boto3
@@ -10,6 +11,15 @@ from flask.json import JSONEncoder
 from src.models import db
 from src.blueprints.stocks import stocks
 from src.blueprints.healthcheck import healthcheck
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s | %(name)s | %(levelname)s | %(message)s'
+)
+
+# Fetch config
+ENVIRONMENT = os.environ['ENVIRONMENT']
+config = safe_load(open(f'/app/settings/{ENVIRONMENT}/config.yaml', 'r'))
 
 
 class CustomJSONEncoder(JSONEncoder):
@@ -27,11 +37,8 @@ def create_app():
     app.register_blueprint(healthcheck)
     app.register_blueprint(stocks)
 
-    # Fetch config
-    ENVIRONMENT = os.environ['ENVIRONMENT']
-    config = safe_load(open(f'/app/settings/{ENVIRONMENT}/config.yaml', 'r'))
-
     # Fetch secrets from AWS Secrets Manager
+    logging.info('Retrieving DB credentials from AWS Secrets Manager')
     if "LOCALSTACK" in config:
         boto_client = boto3.client('secretsmanager', endpoint_url=config['LOCALSTACK']['ENDPOINT_URL'])
     else:
@@ -39,6 +46,7 @@ def create_app():
 
     response = boto_client.get_secret_value(SecretId='db/credentials')
     db_secrets = json.loads(response['SecretString'])
+    logging.info('Sucessfully retrieved DB credentials from AWS Secrets Manager')
 
     # Set up flask config
     app.config.update(config['APP'])
@@ -49,10 +57,12 @@ def create_app():
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     db.init_app(app)
+    logging.info('Initiated app')
 
     return app
 
 
 if __name__ == "__main__":
     app = create_app()
-    app.run(host='0.0.0.0')
+    # Specifying an address:port of "0.0.0.0:<port>"" makes your server viewable to the outside world
+    app.run(host='0.0.0.0', port=config['APP']['PORT'])

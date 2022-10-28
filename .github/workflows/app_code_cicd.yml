@@ -3,9 +3,10 @@ name: Application code CICD Pipeline
 on: [push]
 
 env:
-  IMAGE_VERSION: 1.0.1
-  DOCKER_REPOSITORY: tambona29/financial-data-api
-
+  APP_IMAGE_VERSION: 1.1.0
+  NGINX_IMAGE_VERSION: 1.0.0
+  APP_DOCKER_REPOSITORY: tambona29/financial-data-api
+  NGINX_DOCKER_REPOSITORY: tambona29/nginx-demo
 jobs:
   yamllint:
     runs-on: ubuntu-latest
@@ -63,7 +64,7 @@ jobs:
           scan-type: config
 
           # File to scan
-          scan-ref: app/Dockerfile
+          scan-ref: app/docker/app/Dockerfile
           format: table
           exit-code: 1
           vuln-type: security-check
@@ -84,7 +85,8 @@ jobs:
           if [ "$BRANCH_NAME" != "main" ]; then
             SUFFIX="-${BRANCH_NAME}.dev.${GITHUB_SHA}"
           fi
-          echo "::set-output name=IMAGE_TAG::${DOCKER_REPOSITORY}:${IMAGE_VERSION}${SUFFIX}"
+          echo "::set-output name=SUFFIX::${SUFFIX}"
+          echo "::set-output name=IMAGE_TAG::${APP_DOCKER_REPOSITORY}:${APP_IMAGE_VERSION}${SUFFIX}"
           echo "::set-output name=ACT::${ACT}"
 
       - name: Checkout
@@ -97,7 +99,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: ./app
-          file: ./app/Dockerfile
+          file: ./app/docker/app/Dockerfile
           tags: ${{ steps.build_image_tag.outputs.IMAGE_TAG }}
           outputs: type=docker,dest=/tmp/flask-app.tar
 
@@ -107,6 +109,7 @@ jobs:
           name: flask-app
           path: /tmp/flask-app.tar
     outputs:
+      SUFFIX: ${{ steps.build_image_tag.outputs.SUFFIX }}
       IMAGE_TAG: ${{ steps.build_image_tag.outputs.IMAGE_TAG }}
       ACT: ${{ steps.build_image_tag.outputs.ACT }}
 
@@ -132,7 +135,7 @@ jobs:
           format: table
           exit-code: 1
           ignore-unfixed: true
-          vuln-type: os,library
+          vuln-type: library
           severity: CRITICAL,HIGH
 
   unit-tests:
@@ -200,7 +203,7 @@ jobs:
         run: |
           cd app && make IMAGE_TAG=${IMAGE_TAG} integration-tests
 
-  push-to-registry:
+  push-app-image-to-registry:
     # Ensure this job is skipped when running locally with act
     # ${{ !env.ACT }} does not work here so we use the job outputs instead
     # issue: https://github.com/actions/runner/issues/480
@@ -221,7 +224,7 @@ jobs:
           name: flask-app
           path: /tmp
 
-      - name: Load Docker image
+      - name: Load Docker image to leverage caching
         run: |
           docker load --input /tmp/flask-app.tar
           docker image ls -a
@@ -232,9 +235,39 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push Docker image
+      - name: Build and push application server Docker image
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
         with:
           context: ./app
+          file: ./app/docker/app/Dockerfile
           push: true
           tags: ${{ needs.build.outputs.IMAGE_TAG }}
+
+  push-nginx-image-to-registry:
+      # Ensure this job is skipped when running locally with act
+      # ${{ !env.ACT }} does not work here so we use the job outputs instead
+      # issue: https://github.com/actions/runner/issues/480
+      if: ${{ !needs.build.outputs.ACT}}
+
+      needs: [build, integration-tests]
+      runs-on: ubuntu-latest
+      steps:
+        - name: Check out the repo
+          uses: actions/checkout@v3
+
+        - name: Set up Docker Buildx
+          uses: docker/setup-buildx-action@v1
+
+        - name: Log in to Docker Hub
+          uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+          with:
+            username: ${{ secrets.DOCKERHUB_USERNAME }}
+            password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+        - name: Build and push custom Nginx Docker image
+          uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+          with:
+            context: ./app
+            file: ./app/docker/nginx/Dockerfile
+            push: true
+            tags: ${{ env.NGINX_DOCKER_REPOSITORY }}:${{ env.NGINX_IMAGE_VERSION }}${{ needs.build.outputs.SUFFIX }}

@@ -5,26 +5,31 @@ IMAGE_TAG = flask-app:latest
 DRUN = docker run --rm -e ENVIRONMENT=${ENV}
 DBASH = $(DRUN) -u root -v ${PWD}:/foo -w="/foo" python bash -c 
 
-# Build Docker image
-build:
-	docker build -t flask-app .
+# Build app Docker image
+build-app:
+	docker build -f docker/app/Dockerfile -t flask-app .
 
+# Build Nginx (reverse proxy) Docker image
+build-nginx:
+	docker build -f docker/nginx/Dockerfile -t flask-app-nginx .
+
+# To see logs just remove the -d arg that runs the app as a daemon container
 up:
 	export IMAGE_TAG=${IMAGE_TAG} \
 	&& make setup-db \
 	&& make aws-secrets-manager \
 	&& make populate-db \
-	&& docker-compose -f docker-compose.yaml up -d flask-app
+	&& docker-compose -f docker/docker-compose.yaml up -d nginx
 
 down:
-	docker-compose down
+	docker-compose -f docker/docker-compose.yaml down
 
 setup-db:
-	docker-compose -f docker-compose.yaml up -d postgres-db
+	docker-compose -f docker/docker-compose.yaml up -d postgres-db
 	sleep 3  # Wait for DB to be up and running
 
 teardown-db:
-	docker-compose -f docker-compose.yaml rm -s -v -f postgres-db
+	docker-compose -f docker/docker-compose.yaml rm -s -v -f postgres-db
 
 # Populate local DB with the csvs in tests/integation/test_data/
 populate-db:
@@ -38,9 +43,9 @@ populate-db:
 	${IMAGE_TAG} python -c \
 	"from tests.conftest import populate_db_for_local_testing; populate_db_for_local_testing();"
 
-# Start localstack and create a secret called "test/db/credentials"
+# Start localstack and create a secret called "db/credentials"
 aws-secrets-manager:
-	docker-compose -f docker-compose.yaml up -d localstack
+	docker-compose -f docker/docker-compose.yaml up -d localstack
 	docker run --rm --entrypoint="" --network host localstack/localstack bash -c \
 	"awslocal secretsmanager create-secret \
 	--name db/credentials \
@@ -102,3 +107,15 @@ pip-compile:
 safety:
 	$(DBASH) \
 	"pip install -U pip && pip install safety && safety check -r requirements.txt"
+
+# Trivy image-vulnerabilities
+image-vulnerabilities:
+	docker run --rm \
+	-v /var/run/docker.sock:/var/run/docker.sock \
+	-v ${HOME}/Library/Caches:/root/.cache/ \
+	aquasec/trivy image ${IMAGE_TAG} \
+	--format table \
+	--vuln-type library \
+	--severity CRITICAL,HIGH \
+	--ignore-unfixed \
+	--exit-code 1
