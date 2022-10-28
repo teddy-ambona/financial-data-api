@@ -87,6 +87,16 @@ terragrunt graph-dependencies | dot -Tsvg > graph.svg
 
 <img src="../docs/img/module_dependencies.png" width="250"/>
 
+Terragrunt is a great tool for keeping your code DRY but you may be wondering how does that work in practice. Here is the schematic view of how terragrunt will propagate variables through our file structure:
+
+```text
+<module>/terragrunt.hcl <-- live/terragrunt.hcl <-- env.hcl
+
+<module>/terragrunt.hcl <-- _envcommon.hcl <-- env.hcl                                                              |
+```
+
+Where `<module>/terragrunt.hcl` could be `data-storage/terragrunt.hcl` and `A <-- B` mean `A` imports `B`
+
 ## 3 - Modules deployment
 
 ### A - Create S3 bucket and Dynamo DB for state lock
