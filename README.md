@@ -55,8 +55,8 @@ This repo is a demo project for dockerized flask applications (REST API). This s
 
 Run the following commands to:
 
-- Build the Docker image
-- Run the app and db services locally
+- Build the Docker images
+- Run the Nginx, Localstack, App server and PotsgreSQL DB locally
 - Populate the db credentials secret in AWS Secrets Manager (localstack)
 - Populate DB with TSLA and AMZN stock prices
 
@@ -135,11 +135,11 @@ In [./app](./app)
 ├── config
 │   ├── .yamllint
 │   └── api_settings
-│       ├── development
+│       ├── dev
 │       │   └── config.yaml
 │       ├── local
 │       │   └── config.yaml
-│       ├── production
+│       ├── prod
 │       │   └── config.yaml
 │       ├── test
 │       │    └── config.yaml
@@ -180,7 +180,7 @@ In [./app](./app)
 
 ### A - App CICD workflow
 
-<img src="./docs/img/CICD.png" width="700"/>
+<img src="./docs/img/app_cicd.png" width="700"/>
 <br></br>
 
 - **yamllint:** Lints yaml files in the repo
@@ -196,7 +196,7 @@ In [./app](./app)
 - **push-nginx-image-to-registry:** Push the custom Nginx Docker image to [Docker Hub](https://hub.docker.com/repository/docker/tambona29/nginx-demo)
 
 > Note that the last job should be skipped when running the pipeline locally.
-This is ensured using `if: ${{ !env.ACT }}` in the `push-to-registry` job.
+This is ensured using `if: ${{ !env.ACT }}` in the `push-to-registry` jobs.
 Running this locally means there will be a conflicting image tag when the Github Actions CICD will try and run it a second time.
 
 ### B - Running the CICD pipeline locally
@@ -250,7 +250,7 @@ The requirements are:
 
 ### B - Version bump
 
-Each PR should contain a new version of the `IMAGE_VERSION` in [.github/workflows/app_code_cicd.yml](.github/workflows/app_code_cicd.yml#L6)
+Each PR should contain a new version of the `APP_IMAGE_VERSION` and `NGINX_IMAGE_VERSION` in [.github/workflows/app_code_cicd.yml](.github/workflows/app_code_cicd.yml#L6)
 
 ## 7 - Testing framework
 
