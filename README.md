@@ -19,11 +19,14 @@
   - [A - GIVEN-WHEN-THEN (Martin Fowler)](#a---given-when-then-martin-fowler)
   - [B - Four-Phase Test (Gerard Meszaros)](#b---four-phase-test-gerard-meszaros)
   - [C - Debugging the code with VS Code remote-container extension](#c---debugging-the-code-with-vs-code-remote-container-extension)
-- [8 - Deployment to AWS with Terraform](#8---deployment-to-aws-with-terraform)
+- [8 - Gunicorn application server and Nginx reverse proxy](#8---gunicorn-application-server-and-nginx-reverse-proxy)
+- [9 - Deployment to AWS with Terraform](#9---deployment-to-aws-with-terraform)
   - [A - Keep your code DRY with Terragrunt](#a---keep-your-code-dry-with-terragrunt)
   - [B - Best practices](#b---best-practices)
+- [10 - Improvements](#10---improvements)
+- [11 - Useful resources](#11---useful-resources)
 
-This repo is a demo project for dockerized flask applications(REST API). This simplified API exposes GET endpoints that allow you to pull stock prices and trading indicators. What is covered in this repo:
+This repo is a demo project for dockerized flask applications (REST API). This simplified API exposes GET endpoints that allow you to pull stock prices and trading indicators. What is covered in this repo:
 
 **Application code:**
 
@@ -89,25 +92,25 @@ Basic 3-tier application:
 
 Run the following commands to:
 
-- Build the Docker image
-- Run the app and db services locally
+- Build the Docker images
+- Run the Nginx, Localstack, App server and PotsgreSQL DB locally
 - Populate the db credentials secret in AWS Secrets Manager (localstack)
 - Populate DB with TSLA and AMZN stock prices
 
 ```bash
-cd app && make build up
+cd app & make build-app build-nginx up
 ```
 
 Verify the API is running:
 
 ```bash
-curl -I http://127.0.0.1:5000/_healthcheck
+curl -I http://localhost/_healthcheck
 ```
 
 Get resampled data
 
 ```bash
-$ curl -G -d 'interval=1' -d 'frequency=Annual' http://127.0.0.1:5000/stocks/time-series/AMZN
+$ curl -G -d 'interval=1' -d 'frequency=Annual' http://localhost/stocks/time-series/AMZN
 [
   {
     "close": 92.392,
@@ -177,20 +180,29 @@ In [./app](./app)
 ├── config
 │   ├── .yamllint
 │   └── api_settings
-│       ├── development
+│       ├── dev
 │       │   └── config.yaml
 │       ├── local
 │       │   └── config.yaml
-│       ├── production
+│       ├── prod
 │       │   └── config.yaml
-│       └── test
-│           └── config.yaml
+│       ├── test
+│       │    └── config.yaml
+│       └── gunicorn.py
+├── docker
+│   ├── app
+│   │   └── Dockerfile
+│   ├── nginx
+│   │   ├── Dockerfile
+│   │   └── nginx.conf
+│   └── docker-compose.yaml
 ├── src
 │   ├── __init__.py
 │   ├── app.py
 │   ├── blueprints
 │   │   ├── healthcheck.py
 │   │   └── stocks.py
+│   ├── helpers.py
 │   └── models.py
 ├── tests
 │   ├── __init__.py
@@ -205,8 +217,6 @@ In [./app](./app)
 │       ├── __init__.py
 │       └── test_helpers.py
 ├── .dockerignore
-├── docker-compose.yaml
-├── Dockerfile
 ├── Makefile
 ├── requirements.in
 ├── requirements.txt
@@ -243,22 +253,23 @@ In [./terraform](./terraform)
 
 ### A - App CICD workflow
 
-<img src="./docs/img/CICD.png" width="700"/>
+<img src="./docs/img/app_cicd.png" width="700"/>
 <br></br>
 
 - **yamllint:** Lints yaml files in the repo
 - **flake8:** Lints .py files in the repo
 - **pydocstyle:** Checks compliance with Python docstring conventions
 - **safety:** python packages vulnerabilities scanner
-- **image-misconfiguration:** Detect configuration issues in Dockerfile(Trivy)
-- **build:** Build Docker image and push it to the pipeline artifacts
-- **image-vulnerabilities:** Image vulnerablities scanner(Trivy)
+- **image-misconfiguration:** Detect configuration issues in app Dockerfile (Trivy)
+- **build:** Build app Docker image and push it to the pipeline artifacts
+- **image-vulnerabilities:** App image vulnerablities scanner (Trivy)
 - **unit-tests:** Test the smallest piece of code(functions) that can be isolated
 - **integration-tests:** Series of tests which call the API
-- **push-to-registry:** Push the Docker image to [Docker Hub](https://hub.docker.com/r/tambona29/financial-data-api)
+- **push-app-image-to-registry:** Push the application server Docker image to [Docker Hub](https://hub.docker.com/r/tambona29/financial-data-api)
+- **push-nginx-image-to-registry:** Push the custom Nginx Docker image to [Docker Hub](https://hub.docker.com/repository/docker/tambona29/nginx-demo)
 
 > Note that the last job should be skipped when running the pipeline locally.
-This is ensured using `if: ${{ !env.ACT }}` in the `push-to-registry` job.
+This is ensured using `if: ${{ !env.ACT }}` in the `push-to-registry` jobs.
 Running this locally means there will be a conflicting image tag when the Github Actions CICD will try and run it a second time.
 
 ### B - Infra CICD workflow
@@ -330,7 +341,7 @@ The requirements are:
 
 ### B - Version bump
 
-Each PR should contain a new version of the `IMAGE_VERSION` in [.github/workflows/app_code_cicd.yml](.github/workflows/app_code_cicd.yml#L6)
+Each PR should contain a new version of the `APP_IMAGE_VERSION` and `NGINX_IMAGE_VERSION` in [.github/workflows/app_code_cicd.yml](.github/workflows/app_code_cicd.yml#L6)
 
 ## 7 - Testing framework
 
@@ -361,7 +372,7 @@ in `.devcontainer/devcontainer.json`
 {
   "name": "Existing Dockerfile",
   "context": "../app",
-  "dockerFile": "../app/Dockerfile",
+  "dockerFile": "../app/docker/app/Dockerfile",
 
   "runArgs": [ "--network=host"],
 
@@ -426,7 +437,19 @@ The terminology is well defined in [this article](https://realpython.com/django-
 
 If you still struggle to understand what Nginx can achieve, check out this [repo from AWS Labs](https://github.com/awslabs/ecs-nginx-reverse-proxy/tree/master/reverse-proxy).
 
-# [Add gunicorn workers diagram here]
+Here’s a diagram illustrating how Nginx fits into a Flask web application:
+
+<img src="./docs/img/gunicorn_nginx_architecture.png" width="700"/>
+
+*(image from [How to Configure NGINX for a Flask Web Application](https://www.patricksoftwareblog.com/how-to-configure-nginx-for-a-flask-web-application/))*
+<br></br>
+
+When deployed to AWS our app will look similar to the illustration below, with many servers, each running a Nginx web server and many Gunicorn workers
+
+<img src="./docs/img/gunicorn_workers.png" width="700"/>
+
+*(image from [A guide to deploying Machine/Deep Learning model(s) in Productionn](https://medium.com/@maheshkkumar/a-guide-to-deploying-machine-deep-learning-model-s-in-production-e497fd4b734a))*
+<br></br>
 
 ## 9 - Deployment to AWS with Terraform
 

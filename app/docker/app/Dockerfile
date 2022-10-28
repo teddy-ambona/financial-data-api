@@ -5,7 +5,13 @@ RUN groupadd -r user && useradd -r -g user app
 
 RUN pip install pip -U && pip install pip-tools
 
-RUN mkdir /app && chown -R app /app
+RUN mkdir -v /app && chown -R app /app
+
+# Create log directory for gunicorn
+RUN mkdir -pv /var/log/gunicorn/ && chown -R app /var/log/gunicorn/
+
+# Create PID directory for gunicorn
+RUN mkdir -pv /var/run/gunicorn/ && chown -R app /var/run/gunicorn/
 
 WORKDIR /app
 
@@ -21,4 +27,4 @@ COPY tests ./tests/
 USER app
 
 # Use Gunicorn as production server
-ENTRYPOINT ["gunicorn", "-c", "config/gunicorn.py"]
+ENTRYPOINT ["gunicorn", "-c", "settings/gunicorn.py", "src.app:create_app()"]

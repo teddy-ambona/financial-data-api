@@ -2,9 +2,6 @@ import multiprocessing
 
 # Detailed explanation on https://realpython.com/django-nginx-gunicorn
 
-# Flask WSGI application path in pattern MODULE_NAME:VARIABLE_NAME
-wsgi_app = "src.app:create_app()"
-
 # The number of worker processes for handling requests
 workers = multiprocessing.cpu_count() * 2 + 1
 
@@ -21,9 +18,6 @@ capture_output = True
 # PID file so you can easily fetch process ID
 pidfile = "/var/run/gunicorn/gunicorn.pid"
 
-# Daemonize the Gunicorn process (detach & enter background)
-daemon = True
-
-# explanation about the --timeout argument below
+# Explanation about the --timeout argument below
 # https://github.com/benoitc/gunicorn/issues/1801
 timeout = 1000

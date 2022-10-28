@@ -36,3 +36,16 @@ services:
       - "127.0.0.1:4566:4566"  # LocalStack Gateway
     environment:
       - SERVICES=secretsmanager
+
+  nginx:
+    container_name: "nginx"
+    image: flask-app-nginx:latest
+    ports:
+      - "80:80"
+    depends_on:
+      - flask-app
+    # links instructs Docker to link containers over a network.
+    # When we link containers, Docker creates environment variables
+    # and adds containers to the known hosts list so they can discover each other.
+    links:
+      - flask-app

@@ -59,6 +59,7 @@ def create_app():
     logging.info(f'Connection string: {string_con}')
 
     db.init_app(app)
+    logging.info('Initiated app')
 
     logging.info('Initiated app')
 
