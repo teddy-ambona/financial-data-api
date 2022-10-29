@@ -7,3 +7,4 @@ DB:
   DB_NAME: "PRODUCTION_DB_NAME"
   DB_PORT: "PRODUCTION_PORT"
   DB_HOST: "PRODUCTION_HOST"
+  # DB_USERNAME and DB_PASSWORD are stored in AWS Secrets Manager and will be retrieved at runtime

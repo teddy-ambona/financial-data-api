@@ -1,5 +1,5 @@
 dependencies {
-  paths = ["../../vpc", "../../security-groups", "../../data-storage"]
+  paths = ["../../vpc", "../../security-groups", "../../data-storage", "../../route53"]
 }
 
 locals {

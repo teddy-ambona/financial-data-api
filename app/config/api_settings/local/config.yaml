@@ -8,6 +8,7 @@ DB:
   DB_PORT: 5432
   # Docker compose exposes hosts on an internal network with the same host names as the services.
   DB_HOST: postgres-db
+  # DB_USERNAME and DB_PASSWORD are stored in AWS Secrets Manager and will be retrieved at runtime
 
 LOCALSTACK:
   # Docker compose exposes hosts on an internal network with the same host names as the services.

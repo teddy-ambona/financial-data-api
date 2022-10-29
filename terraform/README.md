@@ -97,6 +97,8 @@ Terragrunt is a great tool for keeping your code DRY but you may be wondering ho
 
 Where `<module>/terragrunt.hcl` could be `data-storage/terragrunt.hcl` and `A <-- B` mean `A` imports `B`
 
+You can adjust `_envcommon/*` depending on how DRY you want your terraform code to be. I personally tend to only leave the variables declaration as well as the terraform states fetching in these files. The resources are not DRY and remain in the environment folders.
+
 ## 3 - Modules deployment
 
 ### A - Create S3 bucket and Dynamo DB for state lock
@@ -249,7 +251,6 @@ It's [best practice](https://www.hyperglance.com/blog/aws-vpc-security-best-prac
 module paths:
 
 - [live/dev/vpc](live/dev/vpc)
-- [live/prod/vpc](live/prod/vpc)
 
 Resources added:
 
@@ -264,7 +265,6 @@ Resources added:
 module paths:
 
 - [live/dev/security-groups](live/dev/security-groups)
-- [live/prod/security-groups](live/prod/security-groups)
 
 Resources added:
 
@@ -276,7 +276,6 @@ Resources added:
 module paths:
 
 - [live/dev/data-storage](live/dev/data-storage)
-- [live/prod/data-storage](live/prod/data-storage)
 
 Resources added:
 
@@ -379,8 +378,7 @@ ECS does not run or execute your container (AWS Fargate will) but only provides 
 
 module paths:
 
-- [live/dev/services/financial-data-api](live/dev/services/financial-data-api)
-- [live/prod/services/financial-data-api](live/prod/services/financial-data-api)
+- [live/dev/ecs/financial-data-api](live/dev/services/financial-data-api)
 
 Resources added:
 

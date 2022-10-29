@@ -29,20 +29,20 @@ include "envcommon" {
 # inputs get merged with the common inputs from the root and the envcommon terragrunt.hcl
 inputs = {
   # App
-  app_image_tag        = "1.2.0-terraform-aws-deploy.dev.b11b9a4d1b199b2034c6059ed4bf6201028fdee0"
+  app_image_tag        = "1.2.0-terraform-aws-deploy.dev.24fb7f417281df6c96348e083ad80394acf9cd33"
   app_image_repository = "docker.io/tambona29/financial-data-api"
-  app_container_cpu    = 512 # (.5 vCPU)
-  app_container_memory = 1024 # (1 GB)
+  app_container_cpu    = 256 # (0.25 vCPU)
+  app_container_memory = 512 # (0.5 GB)
 
   # Nginx
   nginx_image_tag        = "1.1.0-terraform-aws-deploy.dev.e404958dc4ba3aaec569af68a6f77e348016062b"
   nginx_image_repository = "docker.io/tambona29/nginx-demo"
-  nginx_container_cpu    = 512 # (.5 vCPU)
-  nginx_container_memory = 1024 # (1 GBs)
+  nginx_container_cpu    = 256 # (0.25 vCPU)
+  nginx_container_memory = 512 # (0.5 GBs)
 
   # https://aws.amazon.com/premiumsupport/knowledge-center/ecs-cpu-allocation/
-  task_cpu    = 1024 # (1 vCPU)
-  task_memory = 2048 # (2 GB)
+  task_cpu    = 512 # (0.5 vCPU)
+  task_memory = 1024 # (1 GB)
 
   aws_log_group    = "/aws/ecs/aws-fargate-demo/application-stack"
 }

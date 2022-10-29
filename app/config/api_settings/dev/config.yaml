@@ -7,3 +7,4 @@ DB:
   DB_NAME: market_data
   DB_PORT: 5432
   DB_HOST: dev.custom_db_hostname.com
+  # DB_USERNAME and DB_PASSWORD are stored in AWS Secrets Manager and will be retrieved at runtime

@@ -512,3 +512,4 @@ Taking a Flask app from development to production is a demanding but rewarding p
 
 - [Docker Best Practices for Python Developers](https://testdriven.io/blog/docker-best-practices/)
 - [How Amazon ECS manages CPU and memory resources](https://aws.amazon.com/blogs/containers/how-amazon-ecs-manages-cpu-and-memory-resources/)
+- [Getting Out of Tricky Terraform Situations](https://spin.atomicobject.com/2021/03/01/terraform-troubleshooting/)
