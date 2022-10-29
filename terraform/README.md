@@ -7,12 +7,12 @@
   - [A - Create S3 bucket and Dynamo DB for state lock](#a---create-s3-bucket-and-dynamo-db-for-state-lock)
   - [B - Create IAM admin group and add admin user to it](#b---create-iam-admin-group-and-add-admin-user-to-it)
   - [C - Create VPC](#c---create-vpc)
-  - [D - Create security groups (firewalls at instance level)](#d---create-security-groups-firewalls-at-instance-level)
+  - [D - Create security groups (instance-level firewalls)](#d---create-security-groups-instance-level-firewalls)
   - [E - Create Postgres DB](#e---create-postgres-db)
     - [About AWS Secret Manager](#about-aws-secret-manager)
-  - [F - RDS PostgreSQL DB: Create DB schema and populate dev data](#f---rds-postgresql-db-create-db-schema-and-populate-dev-data)
-  - [G - Deploy serverless web-app](#g---deploy-serverless-web-app)
-    - [AWS App runner](#aws-app-runner)
+  - [F - DNS (Route 53)](#f---dns-route-53)
+  - [G - RDS PostgreSQL DB: Create DB schema and populate dev data](#g---rds-postgresql-db-create-db-schema-and-populate-dev-data)
+  - [H - Deploy serverless web-app (ECS with Fargate ASG)](#h---deploy-serverless-web-app-ecs-with-fargate-asg)
 
 The best practice is to apply changes through CICD pipeline only. However for bootstraping your terraform backend and setting up your first IAM admin user you will need to apply changes outside a CICD Pipeline, this is what is shown in 1, 3.A & 3.B.
 
@@ -240,7 +240,9 @@ aws_secret_access_key=<your secret access key>
 aws_session_token=<your session token>
 ```
 
-> Pro tip: I personally use the [aws-mfa](https://github.com/broamski/aws-mfa) tool that automates the painful and clunky process of obtaining temporary credentials from the AWS Security Token Service and updating your AWS Credentials.
+> Pro tip #1: I personally use the [aws-mfa](https://github.com/broamski/aws-mfa) tool that automates the painful and clunky process of obtaining temporary credentials from the AWS Security Token Service and updating your AWS Credentials.
+>
+> Pro tip #2: If you have already created a remote state and still see this message `Remote state S3 bucket financial-data-api-demo-state does not exist or you don't have permissions to access it. Would you like Terragrunt to create it? (y/n)` this could be because you need to refresh your sts token.
 
 ### C - Create VPC
 
@@ -292,7 +294,13 @@ Note that secrets can be injected at task definition in ECS/EKS but whilst passi
 
 This comes at the cost that our application is not cloud-agnostic anymore since we have AWS API calls in the application code. Also at the time of this writing AWS App Runner doesn't support secrets injection ([cf open issue](https://github.com/aws/apprunner-roadmap/issues/6))
 
-### F - RDS PostgreSQL DB: Create DB schema and populate dev data
+### F - DNS (Route 53)
+
+module paths:
+
+- [live/dev/route53](live/dev/route53)
+
+### G - RDS PostgreSQL DB: Create DB schema and populate dev data
 
 We have now instantiated a RDS DB on the private subnet which means connections from/to the internet are not enabled. Even though it would be practical we do not whitelist public IPs as this is bad practice, RDS should remain on a private subnet.
 
@@ -321,18 +329,6 @@ git clone https://github.com/teddy-ambona/financial-data-api.git
 # Replace dev config placeholders with actual dev config.
 cd financial-data-api
 cp -r config/api_settings ./settings
-cat << EOT > settings/dev/config.yaml
----
-APP:
-  DEBUG: true
-  PORT: 80
-
-DB:
-  DB_NAME: market_data
-  DB_USERNAME: postgres
-  DB_PORT: 5432
-  DB_HOST: <YOUR_DB_HOST_NAME>
-EOT
 
 # Install Docker.
 sudo yum -y install docker
@@ -340,11 +336,9 @@ sudo service docker start  # Start Docker daemon.
 sudo usermod -a -G docker ec2-user  # Avoid using "sudo" for each command.
 
 # Populate dev DB with test data
-docker run --rm -e ENVIRONMENT=development \
--e DB_PASSWORD=<REPLACE_WITH_YOUR_DB_PASSOWRD> \
+docker run --rm -e ENVIRONMENT=dev \
 --entrypoint="" \
--v ${PWD}:/app -w="/app" \
-tambona29/financial-data-api:0.4.0 python -c \
+tambona29/financial-data-api:1.1.0 python -c \
 "from tests.conftest import populate_db_for_local_testing; populate_db_for_local_testing();"
 
 # Install psql
@@ -359,22 +353,14 @@ EOF
 sudo yum -y makecache
 sudo yum -y install postgresql12 postgresql12-server
 
+# Fetch DB password from AWS Secrets
+<to implement>
+
 # Verify the data has been populated
-psql -h <YOUR_DB_HOST_NAME> -p 5432 -d market_data -U postgres -c "SELECT * FROM market_data.stocks_ohlcv;"
+psql -h dev.custom_db_hostname.com -p 5432 -d market_data -U postgres -c "SELECT * FROM market_data.stocks_ohlcv;"
 ```
 
-### G - Deploy serverless web-app
-
-#### ECS with Fargate ASG
-
-Elastic Container Services allows you to deploy containerized tasks on a cluster. In this demo I chose AWS Fargate [capacity provider](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/cluster-capacity-providers.html) for a serverless infrastructure . ECS concepts are well explained in the [Amazon ECS clusters documentation](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/clusters.html).
-
-ECS does not run or execute your container (AWS Fargate will) but only provides the control plane to manage tasks. Below is the general architecture of ECS with AWS Fargate.
-
-<img src="../docs/img/overview_fargate.png" width="700"/>
-
-*(image from [Amazon ECS launch types](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_types.html))*
-<br></br>
+### H - Deploy serverless web-app (ECS with Fargate ASG)
 
 module paths:
 
@@ -387,3 +373,24 @@ Resources added:
 - ECS Service
 - ECS Task definition
 - Assign web-server security-group and role to ECS task
+
+Elastic Container Services allows you to deploy containerized tasks on a cluster. In this demo I chose AWS Fargate [capacity provider](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/cluster-capacity-providers.html) for a serverless infrastructure . ECS concepts are well explained in the [Amazon ECS clusters documentation](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/clusters.html).
+
+ECS does not run or execute your container (AWS Fargate will) but only provides the control plane to manage tasks. Below is the general architecture of ECS with AWS Fargate.
+
+<img src="../docs/img/overview_fargate.png" width="700"/>
+
+*(image from [Amazon ECS launch types](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_types.html))*
+<br></br>
+
+Note that in the task definition we use the `awsvpc` network mode (cf [best practices](https://docs.aws.amazon.com/AmazonECS/latest/bestpracticesguide/application.html)) and maps the container port 5000 (gunicorn server) with the host however we only want to expose the Nginx server that runs on port 80. That's when the security-group at service level becomes useful as it is only allowing incoming request from port 80.
+
+Using the Public IP of the ECS service (you can easily find it in the web-console as shown be below).
+
+<img src="../docs/img/ecs_public_ip.png" width="300"/>
+
+We can now access our API from the web browser:
+
+<img src="../docs/img/api_request_example.png" width="700"/>
+
+I did not bother buying a public domain name for this demo but in practice we would want a HTTPS endpoint with a more readable name like "mysuperapi.com".

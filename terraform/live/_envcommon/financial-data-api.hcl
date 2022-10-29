@@ -170,6 +170,14 @@ generate "task_template" {
       {
         "name": "AWS_DEFAULT_REGION",
         "value": "${local.env_vars.locals.aws_region}"
+      },
+      {
+        "name": "PYTHONDONTWRITEBYTECODE",
+        "value": "1"
+      },
+      {
+        "name": "PYTHONUNBUFFERED",
+        "value": "1"
       }
     ],
     "ulimits": [

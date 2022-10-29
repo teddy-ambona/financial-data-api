@@ -53,7 +53,7 @@ This repo is a demo project for dockerized flask applications (REST API). This s
   - IAM configuration (RBAC)
   - AWS Secrets Manager
   - ECS with Fargate ASG
-- Terragrunt patterns to keep the code DRY across environments (dev, staging, prod)
+- Terragrunt patterns to keep the code DRY across environments
 - Security scanner (tfsec), static analysis to enforce best practices (tflint, validate, fmt)
 - Blue/green deployment triggered from Git CI/CD
 - Automated infrastructure cost estimation (with Infracost)
