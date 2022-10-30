@@ -1,18 +1,25 @@
 # Terraform deployment
 
 - [1 - Environments segmentation](#1---environments-segmentation)
-- [1 - [Optional] If you have a new AWS account](#1---optional-if-you-have-a-new-aws-account)
-- [2 - Module dependencies](#2---module-dependencies)
+- [2 - [Optional] If you have a new AWS account](#2---optional-if-you-have-a-new-aws-account)
+- [3 - Module dependencies](#3---module-dependencies)
 - [3 - Modules deployment](#3---modules-deployment)
   - [A - Create S3 bucket and Dynamo DB for state lock](#a---create-s3-bucket-and-dynamo-db-for-state-lock)
   - [B - Create IAM admin group and add admin user to it](#b---create-iam-admin-group-and-add-admin-user-to-it)
   - [C - Create VPC](#c---create-vpc)
+    - [Associated costs](#associated-costs)
   - [D - Create security groups (instance-level firewalls)](#d---create-security-groups-instance-level-firewalls)
+    - [Associated costs](#associated-costs-1)
   - [E - Create Postgres DB](#e---create-postgres-db)
     - [About AWS Secret Manager](#about-aws-secret-manager)
+    - [Associated costs](#associated-costs-2)
   - [F - DNS (Route 53)](#f---dns-route-53)
-  - [G - RDS PostgreSQL DB: Create DB schema and populate dev data](#g---rds-postgresql-db-create-db-schema-and-populate-dev-data)
-  - [H - Deploy serverless web-app (ECS with Fargate ASG)](#h---deploy-serverless-web-app-ecs-with-fargate-asg)
+    - [Associated costs](#associated-costs-3)
+  - [G - Create a bastion host](#g---create-a-bastion-host)
+    - [Associated costs](#associated-costs-4)
+  - [H - RDS PostgreSQL DB: Create DB schema and populate dev data](#h---rds-postgresql-db-create-db-schema-and-populate-dev-data)
+  - [I - Deploy serverless web-app (ECS with Fargate)](#i---deploy-serverless-web-app-ecs-with-fargate)
+    - [Associated costs](#associated-costs-5)
 
 The best practice is to apply changes through CICD pipeline only. However for bootstraping your terraform backend and setting up your first IAM admin user you will need to apply changes outside a CICD Pipeline, this is what is shown in 1, 3.A & 3.B.
 
@@ -43,9 +50,9 @@ For each environment the below file structure will be created in s3:
 │       └── .tfstate
 ```
 
-## 1 - [Optional] If you have a new AWS account
+## 2 - [Optional] If you have a new AWS account
 
-If you already have your remote backend setup you can skip this part and jump to [3 - Create IAM user, role and policies](#2---create-iam-admin-group-and-add-admin-user-to-it)
+If you already have your remote backend setup you can skip this part and jump to [B - Create IAM admin group and add admin user to it](#b---create-iam-admin-group-and-add-admin-user-to-it)
 
 The first step will be to create a s3 bucket to store the remote backend and to create a Dynamo DB for storing the lock.
 
@@ -73,7 +80,7 @@ aws_secret_access_key=<your secret access key>
 
 I personally recommend using `us-east-1` region as [it is the cheapest region](https://www.concurrencylabs.com/blog/choose-your-aws-region-wisely/), that can help keeping the costs down if you are just playing with AWS services.
 
-## 2 - Module dependencies
+## 3 - Module dependencies
 
 In the `terragrunt.hcl` of each module, we declare the dependencies on other modules so that terragrunt knows in what order to create or destroy the resources when running `terragrunt run-all apply` or `terragrunt run-all destroy`. If any of the modules fail to deploy, then Terragrunt will not attempt to deploy the modules that depend on them(cf [documentation](https://terragrunt.gruntwork.io/docs/features/execute-terraform-commands-on-multiple-modules-at-once/#dependencies-between-modules)).
 
@@ -348,9 +355,10 @@ module path:
 
 Resources added:
 
+- Set of RSA private/public keys
 - EC2 instance
 
-Create EC2 instance on public subnet with restrictive security-group that only allows ssh from EC2 Instance connect. As we are using the region us-east-1 the IP range to whitelist is 18.206.107.24/29 cf [https://ip-ranges.amazonaws.com/ip-ranges.json](https://ip-ranges.amazonaws.com/ip-ranges.json). This bastion host is useful for troubleshooting issues from within the VPC (is my DNS private hosted zone working?) or accessing resources that sit in a private subnet (like the RDS DB for instance).
+Create EC2 instance in public subnet with restrictive security-group that only allows ssh from EC2 Instance connect. As we are using the region us-east-1 the IP range to whitelist is 18.206.107.24/29 cf [https://ip-ranges.amazonaws.com/ip-ranges.json](https://ip-ranges.amazonaws.com/ip-ranges.json). This bastion host is useful for troubleshooting issues from within the VPC (is my DNS private hosted zone working?) or accessing resources that sit in a private subnet (like the RDS DB for instance).
 
 For more info check out the official documentation: [Set up EC2 Instance Connect](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-connect-set-up.html)
 
@@ -376,9 +384,13 @@ To connect to a private Amazon RDS, it's a best practice to use VPN or AWS Direc
 
 Let's use the following command to create the DB schema and populate our DB with the mock dataset
 
-1 - SSH onto the EC2 bastion host using AWS instance connect (in the web console)
+1 - Go to the EC2 web-console
 
-2 - Run the following script on the machine
+<img src="../docs/img/ec2_bastion_host.png" width="700"/>
+
+2 - SSH onto the EC2 bastion host using AWS instance connect
+
+3 - Run the following script on the machine
 
 ```bash
 # Update installed packages to the latest available releases.
@@ -438,12 +450,13 @@ Resources added:
 
 Elastic Container Services allows you to deploy containerized tasks on a cluster. In this demo I chose AWS Fargate [capacity provider](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/cluster-capacity-providers.html) for a serverless infrastructure . ECS concepts are well explained in the [Amazon ECS clusters documentation](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/clusters.html).
 
-ECS does not run or execute your container (AWS Fargate will) but only provides the control plane to manage tasks. Below is the general architecture of ECS with AWS Fargate.
+ECS does not run or execute your container (AWS Fargate will) but only provides the control plane to manage tasks. Below is the general architecture of our API in ECS with AWS Fargate.
 
-<img src="../docs/img/overview_fargate.png" width="700"/>
+<img src="../docs/img/ecs_fargate.png" width="700"/>
 
-*(image from [Amazon ECS launch types](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_types.html))*
-<br></br>
+*(image drawn from [draw.io](https://www.draw.io/?splash=0&libs=aws4))*
+
+The service will build or kill tasks to meet the `desired_count` requirement (only 1 in this demo). Blue/Green deployment is the default behaviour for the ECS service provided you have more than task set in `desired_count`, otherwise you can expect some downtime.
 
 Note that in the task definition we use the `awsvpc` network mode (cf [best practices](https://docs.aws.amazon.com/AmazonECS/latest/bestpracticesguide/application.html)) and maps the container port 5000 (gunicorn server) with the host however we only want to expose the Nginx server that runs on port 80. That's when the security-group at service level becomes useful as it is only allowing incoming traffic from port 80.
 
@@ -459,7 +472,7 @@ We can now access our API from the web browser:
 
 I did not bother buying a public domain name for this demo but in practice we would want a HTTPS endpoint with a more readable name like "mysuperapi.com". Also you would need to assign an elastic IP to the ECS service or its public IP will change every time you redeploy the resource. If your API isn't meant to be public and you want to restrict access to certain users only [AWS Cognito](https://aws.amazon.com/cognito/) is doing a great job at user management and authentication for the backend API.
 
-#### **Associated costs**
+#### Associated costs
 
 Unfortunately ECS is not part of the AWS free tier. For ECS with Fargate launch type you will be charged based on vCPU and memory resources that the containerized application requests. See below:
 

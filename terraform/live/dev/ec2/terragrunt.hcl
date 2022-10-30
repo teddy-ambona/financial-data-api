@@ -28,5 +28,6 @@ include "envcommon" {
 # For development, we want to specify smaller instance classes and storage, so we specify override parameters here. These
 # inputs get merged with the common inputs from the root and the envcommon terragrunt.hcl
 inputs = {
-  instance_class    = "db.t3.micro"
+  ami            = "ami-09d3b3274b6c5d4aa"
+  instance_class = "t2.micro"
 }

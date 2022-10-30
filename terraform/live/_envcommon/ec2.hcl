@@ -18,14 +18,14 @@ locals {
   environment    = "${local.env_vars.locals.environment}"
 }
 
+variable "ami" {
+  type        = string
+  description = "EC2 instance ami"
+}
+
 variable "instance_class" {
   type        = string
   description = "EC2 instance class"
-}
-
-variable "allocated_storage" {
-  type        = number
-  description = "size of the EBS volume"
 }
 
 # Allow fetching security-group id from the state file
@@ -50,7 +50,7 @@ data "terraform_remote_state" "iam" {
   }
 }
 
-# Allow fetching VPC id from the state file
+# Allow fetching subnet id from the state file
 data "terraform_remote_state" "vpc" {
   backend = "s3"
 

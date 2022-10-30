@@ -46,17 +46,17 @@ This repo is a demo project for dockerized flask applications (REST API). This s
 **Infrastructure code:**
 
 - Multi AZ serverless architecture:
-  - AWS Organizations (dev/ staging/prod OUs)
   - VPC, Security-groups
-  - Application Load Balancer
-  - RDS DB, S3
+  - RDS DB, S3, Route53
   - IAM configuration (RBAC)
   - AWS Secrets Manager
-  - ECS with Fargate ASG
+  - ECS with Fargate (Blue/Green deployment)
+
+- Github Actions CICD:
+  - Security scanner (tfsec)
+  - Static analysis to enforce best practices (tflint, validate, fmt)
+  - Automated infrastructure cost estimation (with Infracost)
 - Terragrunt patterns to keep the code DRY across environments
-- Security scanner (tfsec), static analysis to enforce best practices (tflint, validate, fmt)
-- Blue/green deployment triggered from Git CI/CD
-- Automated infrastructure cost estimation (with Infracost)
 - Automated architecture diagrams from Terraform code
 - Terraform remote backend bootstrap
 
@@ -282,11 +282,6 @@ Running this locally means there will be a conflicting image tag when the Github
   - Enforce best practices, naming conventions
 - **tfsec:** Static analysis of terraform templates to spot potential security issues
 - **infra-cost:** Infracost shows cloud cost estimates for Terraform
-
-TODO: The workflow should also:
-
-- generate a plan for every pull requests
-- apply the configuration when you update the main branch
 
 ### C - Running the CICD pipeline locally
 

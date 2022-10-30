@@ -2,7 +2,7 @@
 #tfsec:ignore:aws-ec2-no-public-egress-sgr
 module "web_server_sg" {
   source  = "terraform-aws-modules/security-group/aws"
-  version = "4.11.0"
+  version = "~>4.16"
 
   name                = "${local.name_prefix}-web-server-sg"
   description         = "Security group for web-server"
@@ -25,7 +25,7 @@ module "web_server_sg" {
 
 module "db_sg" {
   source  = "terraform-aws-modules/security-group/aws"
-  version = "4.11.0"
+  version = "~>4.16"
 
   name        = "${local.name_prefix}-db-sg"
   description = "Security group for database"
@@ -44,7 +44,7 @@ module "db_sg" {
 
 module "bastion_host_sg" {
   source  = "terraform-aws-modules/security-group/aws"
-  version = "4.11.0"
+  version = "~>4.16"
 
   name                = "${local.name_prefix}-bastion-host-sg"
   description         = "Security group for the bastion host"
@@ -52,9 +52,15 @@ module "bastion_host_sg" {
   # Only whitelist EC2 instance connect for incoming requests
   # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-connect-set-up.html
   # cf [https://ip-ranges.amazonaws.com/ip-ranges.json] --> us-east-1: 18.206.107.24/29
-  ingress_cidr_blocks = ["18.206.107.24/29"]
-  ingress_rules       = ["tcp"]
-
+  ingress_with_cidr_blocks = [
+    {
+      from_port   = 22
+      to_port     = 22
+      protocol    = "tcp"
+      description = "EC2 Instance connect"
+      cidr_blocks = "18.206.107.24/29"
+    }
+  ]
   egress_cidr_blocks = ["0.0.0.0/0"]
   egress_rules       = ["http-8080-tcp", "https-443-tcp", "postgresql-tcp"]
 
