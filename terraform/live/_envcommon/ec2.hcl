@@ -1,5 +1,5 @@
 dependencies {
-  paths = ["../../vpc", "../../security-groups"]
+  paths = ["../vpc", "../security-groups"]
 }
 
 locals {
@@ -20,17 +20,12 @@ locals {
 
 variable "instance_class" {
   type        = string
-  description = "DB instance class"
+  description = "EC2 instance class"
 }
 
 variable "allocated_storage" {
   type        = number
-  description = "size of the DB"
-}
-
-variable "db_username" {
-  type        = string
-  description = "DB username"
+  description = "size of the EBS volume"
 }
 
 # Allow fetching security-group id from the state file
@@ -41,6 +36,17 @@ data "terraform_remote_state" "sg" {
     bucket = "${local.env_vars.locals.remote_state_bucket}"
     region = "${local.env_vars.locals.aws_region}"
     key = "${local.env_vars.locals.environment}/security-groups/terraform.tfstate"
+  }
+}
+
+# Allow fetching role ARN from the state file
+data "terraform_remote_state" "iam" {
+  backend = "s3"
+
+  config = {
+    bucket = "${local.env_vars.locals.remote_state_bucket}"
+    region = "${local.env_vars.locals.aws_region}"
+    key = "global/iam/terraform.tfstate"
   }
 }
 

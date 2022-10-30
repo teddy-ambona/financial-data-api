@@ -29,11 +29,15 @@ For each environment the below file structure will be created in s3:
 │   ├── s3
 │   │   └── .tfstate
 ├── <env>
-│   ├── data-storage
+│   ├── data-storage/rds
+│   │   └── .tfstate
+│   ├── ec2
+│   │   └── .tfstate
+│   ├── ecs/financial-data-api
+│   │   └── .tfstate
+│   ├── route53
 │   │   └── .tfstate
 │   ├── security_groups
-│   │   └── .tfstate
-│   ├── services
 │   │   └── .tfstate
 │   └── vpc
 │       └── .tfstate
@@ -73,15 +77,18 @@ I personally recommend using `us-east-1` region as [it is the cheapest region](h
 
 In the `terragrunt.hcl` of each module, we declare the dependencies on other modules so that terragrunt knows in what order to create or destroy the resources when running `terragrunt run-all apply` or `terragrunt run-all destroy`. If any of the modules fail to deploy, then Terragrunt will not attempt to deploy the modules that depend on them(cf [documentation](https://terragrunt.gruntwork.io/docs/features/execute-terraform-commands-on-multiple-modules-at-once/#dependencies-between-modules)).
 
+For example in [live/\_envcommon/financial-data-api.hcl](./live/_envcommon/financial-data-api.hcl):
+
 ```hcl
 dependencies {
-  paths = ["../vpc", "../security_groups", "../postgres"]
+  paths = ["../../vpc", "../../security-groups", "../../data-storage", "../../route53"]
 }
 ```
 
 After [installing graphviz](https://installati.one/ubuntu/20.04/graphviz/) you can run:
 
 ```bash
+cd live/dev
 terragrunt graph-dependencies | dot -Tsvg > graph.svg
 ```
 
@@ -95,7 +102,8 @@ Terragrunt is a great tool for keeping your code DRY but you may be wondering ho
 <module>/terragrunt.hcl <-- _envcommon.hcl <-- env.hcl                                                              |
 ```
 
-Where `<module>/terragrunt.hcl` could be `data-storage/terragrunt.hcl` and `A <-- B` mean `A` imports `B`
+Where `<module>/terragrunt.hcl` could be `data-storage/rds
+ds/terragrunt.hcl` and `A <-- B` means `A` imports `B`
 
 You can adjust `_envcommon/*` depending on how DRY you want your terraform code to be. I personally tend to only leave the variables declaration as well as the terraform states fetching in these files. The resources are not DRY and remain in the environment folders.
 
@@ -250,7 +258,7 @@ If you are new to this, a goood explanation of what VPCs are is detailed in [AWS
 
 It's [best practice](https://www.hyperglance.com/blog/aws-vpc-security-best-practices/) to create 1 VPC per application that you want to deploy and ideally 1 account per app, per environment to limit blast radius.
 
-module paths:
+module path:
 
 - [live/dev/vpc](live/dev/vpc)
 
@@ -262,9 +270,13 @@ Resources added:
 - Create subnet route tables
 - Create route table associations
 
+#### Associated costs
+
+Free. However beware of the [traffic cost](https://www.nops.io/aws-data-transfer-cost-operation/).
+
 ### D - Create security groups (instance-level firewalls)
 
-module paths:
+module path:
 
 - [live/dev/security-groups](live/dev/security-groups)
 
@@ -272,12 +284,17 @@ Resources added:
 
 - Create a security group for the web-server
 - Create a security group for the database
+- Create a security group for the bastion host
+
+#### Associated costs
+
+Free
 
 ### E - Create Postgres DB
 
-module paths:
+module path:
 
-- [live/dev/data-storage](live/dev/data-storage)
+- [live/dev/data-storage/rds](live/dev/data-storage/rds)
 
 Resources added:
 
@@ -292,31 +309,76 @@ There are a few benefits we get from using AWS Secrets Manager, the sensitive da
 
 Note that secrets can be injected at task definition in ECS/EKS but whilst passing secrets to your application through the filesystem or environment variables is common, it should be avoided when possible and the Secret Manager API should be used directly (cf [Google best practices](https://cloud.google.com/secret-manager/docs/best-practices#coding_practices))
 
-This comes at the cost that our application is not cloud-agnostic anymore since we have AWS API calls in the application code. Also at the time of this writing AWS App Runner doesn't support secrets injection ([cf open issue](https://github.com/aws/apprunner-roadmap/issues/6))
+This comes at the cost that our application is not cloud-agnostic anymore since we have AWS API calls in the application code.
+
+#### Associated costs
+
+- $0.4/secret/month (as of 2022-10-30 cf AWS Secrets Manager Pricing)
+
+This db.t3.micro with 20 GB of General Purpose (SSD) DB storage instance sits into the AWS free-tier so it is free (cf [Amazon RDS Pricing](https://aws.amazon.com/rds/pricing/))
 
 ### F - DNS (Route 53)
 
-module paths:
+module path:
 
 - [live/dev/route53](live/dev/route53)
 
-### G - RDS PostgreSQL DB: Create DB schema and populate dev data
+Resources added:
+
+- Private hosted zone
+- One record type (A) that matches the alias record of the RDS DB
+
+A private hosted zone is a container that holds information about how you want to route traffic for a domain and its subdomains within one or more VPCs without exposing your resources to the internet (cf [View and update DNS attributes for your VPC](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-dns.html#vpc-dns-updating))
+
+if you still struggle to troubleshoot DNS issues within your VPC https://aws.amazon.com/premiumsupport/knowledge-center/route-53-fix-dns-resolution-issues/
+
+#### Associated costs
+
+- $0.5/month for the hosted zone (as of 2022-10-30)
+
+DNS queries are free when domain or subdomain name the record type (A) in the query match an alias record (cf [Amazon Route 53 pricing](https://aws.amazon.com/route53/pricing/))
+
+Also check out the great explanation on Route53 pricing in [this article](https://www.stormit.cloud/blog/amazon-route-53-pricing/)
+
+### G - Create a bastion host
+
+module path:
+
+- [live/dev/ec2](live/dev/ec2)
+
+Resources added:
+
+- EC2 instance
+
+Create EC2 instance on public subnet with restrictive security-group that only allows ssh from EC2 Instance connect. As we are using the region us-east-1 the IP range to whitelist is 18.206.107.24/29 cf [https://ip-ranges.amazonaws.com/ip-ranges.json](https://ip-ranges.amazonaws.com/ip-ranges.json). This bastion host is useful for troubleshooting issues from within the VPC (is my DNS private hosted zone working?) or accessing resources that sit in a private subnet (like the RDS DB for instance).
+
+For more info check out the official documentation: [Set up EC2 Instance Connect](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-connect-set-up.html)
+
+#### Associated costs
+
+This t2.micro instance sits into the AWS free-tier so it is free. Here is the pricing outside the free-tier:
+
+|   Instance class  | vCPUs | RAM (GiB)| CPU Credits/hr| On-Demand Price/hr |
+|:-----------------:|:-----:|:--------:|:-------------:|:------------------:|
+|    t2.micro       |   1   |     1    |        6      |        $0.0116     |
+
+*(prices as of 2022-10-30 cf [Amazon EC2 T2 Instances](https://aws.amazon.com/ec2/instance-types/t2/))*
+
+### H - RDS PostgreSQL DB: Create DB schema and populate dev data
 
 We have now instantiated a RDS DB on the private subnet which means connections from/to the internet are not enabled. Even though it would be practical we do not whitelist public IPs as this is bad practice, RDS should remain on a private subnet.
 
 So how do I populate my private RDS DB with a one-off script?
 
-To execute SQL queries on the DB instance we can SSH onto an EC2 instance (in public subnet) that we call **bastion host**.
-
-Let's use the following command to create the DB schema and populate our DB with the mock dataset
+To execute SQL queries on the DB instance we can SSH onto our **bastion host** which is an EC2 instance (in public subnet).
 
 To connect to a private Amazon RDS, it's a best practice to use VPN or AWS Direct Connect ([cf aws documentation](https://aws.amazon.com/premiumsupport/knowledge-center/rds-connect-ec2-bastion-host/#)). Because I intend to remain in AWS free-tier I instead use a bastion host.
 
-1 - Create EC2 instance (bastion host) on public subnet with restrictive sg (should only allow ssh from public CIDR of your corporation)
+Let's use the following command to create the DB schema and populate our DB with the mock dataset
 
-2 - SSH onto the EC2 bastion host using AWS instance connect (in the web console)
+1 - SSH onto the EC2 bastion host using AWS instance connect (in the web console)
 
-3 - Run the following script on the machine (make sure you replace the DB host name as well as the password)
+2 - Run the following script on the machine
 
 ```bash
 # Update installed packages to the latest available releases.
@@ -360,9 +422,9 @@ sudo yum -y install postgresql12 postgresql12-server
 psql -h dev.custom_db_hostname.com -p 5432 -d market_data -U postgres -c "SELECT * FROM market_data.stocks_ohlcv;"
 ```
 
-### H - Deploy serverless web-app (ECS with Fargate ASG)
+### I - Deploy serverless web-app (ECS with Fargate)
 
-module paths:
+module path:
 
 - [live/dev/ecs/financial-data-api](live/dev/services/financial-data-api)
 
@@ -383,7 +445,7 @@ ECS does not run or execute your container (AWS Fargate will) but only provides 
 *(image from [Amazon ECS launch types](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/launch_types.html))*
 <br></br>
 
-Note that in the task definition we use the `awsvpc` network mode (cf [best practices](https://docs.aws.amazon.com/AmazonECS/latest/bestpracticesguide/application.html)) and maps the container port 5000 (gunicorn server) with the host however we only want to expose the Nginx server that runs on port 80. That's when the security-group at service level becomes useful as it is only allowing incoming request from port 80.
+Note that in the task definition we use the `awsvpc` network mode (cf [best practices](https://docs.aws.amazon.com/AmazonECS/latest/bestpracticesguide/application.html)) and maps the container port 5000 (gunicorn server) with the host however we only want to expose the Nginx server that runs on port 80. That's when the security-group at service level becomes useful as it is only allowing incoming traffic from port 80.
 
 Using the Public IP of the ECS service (you can easily find it in the web-console as shown be below).
 
@@ -393,4 +455,16 @@ We can now access our API from the web browser:
 
 <img src="../docs/img/api_request_example.png" width="700"/>
 
-I did not bother buying a public domain name for this demo but in practice we would want a HTTPS endpoint with a more readable name like "mysuperapi.com".
+> Note that not precising any specific port will default the request to port 80.
+
+I did not bother buying a public domain name for this demo but in practice we would want a HTTPS endpoint with a more readable name like "mysuperapi.com". Also you would need to assign an elastic IP to the ECS service or its public IP will change every time you redeploy the resource. If your API isn't meant to be public and you want to restrict access to certain users only [AWS Cognito](https://aws.amazon.com/cognito/) is doing a great job at user management and authentication for the backend API.
+
+#### **Associated costs**
+
+Unfortunately ECS is not part of the AWS free tier. For ECS with Fargate launch type you will be charged based on vCPU and memory resources that the containerized application requests. See below:
+
+|   Launch type  | $/vCPU/h |    $/GB/h   |
+|:--------------:|:--------:|:-----------:|
+|    FARGATE     |  0.04048 |  0.004445   |
+|  FARGATE SPOT  |  0.012144|  0.0013335  |
+*(prices as of 2022-10-30 cf [AWS Fargate Pricing](https://aws.amazon.com/fargate/pricing/))*

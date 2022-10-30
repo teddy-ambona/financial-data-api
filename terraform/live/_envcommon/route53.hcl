@@ -1,6 +1,6 @@
 dependencies {
-  # Relative paths to the diretory where terragrunt is run
-  paths = ["../vpc", "../security-groups", "../data-storage"]
+  # Relative paths to the directory where terragrunt is run
+  paths = ["../vpc", "../data-storage/rds"]
 }
 
 locals {
@@ -37,7 +37,7 @@ data "terraform_remote_state" "postgres_db" {
   config = {
     bucket = "${local.env_vars.locals.remote_state_bucket}"
     region = "${local.env_vars.locals.aws_region}"
-    key = "${local.env_vars.locals.environment}/data-storage/terraform.tfstate"
+    key = "${local.env_vars.locals.environment}/data-storage/rds/terraform.tfstate"
   }
 }
 EOF

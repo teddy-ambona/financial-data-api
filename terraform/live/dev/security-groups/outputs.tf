@@ -7,3 +7,8 @@ output "web_server_sg_id" {
   description = "The ID of the web-server security group"
   value       = module.web_server_sg.security_group_id
 }
+
+output "bastion_host_sg_id" {
+  description = "The ID of the bastion host security group"
+  value       = module.bastion_host_sg.security_group_id
+}

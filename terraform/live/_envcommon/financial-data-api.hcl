@@ -1,5 +1,5 @@
 dependencies {
-  paths = ["../../vpc", "../../security-groups", "../../data-storage", "../../route53"]
+  paths = ["../../vpc", "../../security-groups", "../../data-storage/rds", "../../route53"]
 }
 
 locals {
@@ -108,7 +108,9 @@ data "terraform_remote_state" "vpc" {
 EOF
 }
 
-# Automate generation of task template
+# Automate generation of task template.
+# Set PYTHONDONTWRITEBYTECODE and PYTHONUNBUFFERED to 1 so that logs aren't buffered
+# and can be observed in real-time (useful for troubleshooting issues)
 generate "task_template" {
   path              = "terragrunt_financial_data_api.json.tpl"
   if_exists         = "overwrite"
