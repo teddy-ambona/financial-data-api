@@ -7,19 +7,13 @@ RUN pip install pip -U && pip install pip-tools
 
 RUN mkdir -v /app && chown -R app /app
 
-# Create log directory for gunicorn
-RUN mkdir -pv /var/log/gunicorn/ && chown -R app /var/log/gunicorn/
-
-# Create PID directory for gunicorn
-RUN mkdir -pv /var/run/gunicorn/ && chown -R app /var/run/gunicorn/
-
 WORKDIR /app
 
 # Install requirements.txt in new instruction to benefit from the layer caching system.
 COPY requirements.txt ./
 RUN pip install -r requirements.txt
 
-COPY config/api_settings ./settings
+COPY config ./config
 COPY src ./src/
 COPY tests ./tests/
 
@@ -27,4 +21,4 @@ COPY tests ./tests/
 USER app
 
 # Use Gunicorn as production server
-ENTRYPOINT ["gunicorn", "-c", "settings/gunicorn.py", "src.app:create_app()"]
+ENTRYPOINT ["gunicorn", "-c", "config/gunicorn.py", "src.app:create_app()"]

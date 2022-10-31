@@ -7,6 +7,7 @@ DB:
   DB_NAME: postgres
   DB_PORT: 5432
   DB_HOST: localhost
+  # DB_USERNAME and DB_PASSWORD are stored in AWS Secrets Manager and will be retrieved at runtime
 
 LOCALSTACK:
   ENDPOINT_URL: http://localhost.localstack.cloud:4566
