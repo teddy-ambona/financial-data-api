@@ -19,7 +19,7 @@ logging.basicConfig(
 
 # Fetch config
 ENVIRONMENT = os.environ['ENVIRONMENT']
-config = safe_load(open(f'/app/settings/{ENVIRONMENT}/config.yaml', 'r'))
+config = safe_load(open(f'/app/config/{ENVIRONMENT}/config.yaml', 'r'))
 
 
 class CustomJSONEncoder(JSONEncoder):
@@ -56,11 +56,7 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = string_con
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    logging.info(f'Connection string: {string_con}')
-
     db.init_app(app)
-    logging.info('Initiated app')
-
     logging.info('Initiated app')
 
     return app

@@ -163,8 +163,8 @@ cython_debug/
 .vscode/
 .devcontainer
 
-# Secret variables
-secrets.txt
+# File that contains secret variables
+.secrets.txt
 
 # Local .terraform directories
 **/.terraform/*

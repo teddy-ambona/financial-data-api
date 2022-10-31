@@ -94,7 +94,7 @@ yamllint:
 	$(DBASH) \
 	"pip install -U pip && \
 	pip install yamllint && \
-	yamllint -c config/.yamllint ."
+	yamllint ."
 
 # Auto-generate requirements.txt based on requirements.in
 pip-compile:
