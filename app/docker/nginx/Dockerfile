@@ -8,4 +8,4 @@ RUN rm /etc/nginx/conf.d/default.conf
 # and the main configuration file is /etc/nginx/nginx.conf. At the bottom of
 # /etc/nginx/nginx.conf is a line to include any additional configuration files located
 # in the /etc/nginx/conf.d/ directory: "include /etc/nginx/conf.d/*.conf;"
-COPY docker/nginx/nginx.conf /etc/nginx/conf.d
+COPY docker/nginx/nginx.local.conf /etc/nginx/conf.d

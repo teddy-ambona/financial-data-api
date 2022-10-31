@@ -19,7 +19,7 @@ logging.basicConfig(
 
 # Fetch config
 ENVIRONMENT = os.environ['ENVIRONMENT']
-config = safe_load(open(f'/app/settings/{ENVIRONMENT}/config.yaml', 'r'))
+config = safe_load(open(f'/app/config/{ENVIRONMENT}/config.yaml', 'r'))
 
 
 class CustomJSONEncoder(JSONEncoder):

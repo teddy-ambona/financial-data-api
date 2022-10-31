@@ -3,8 +3,8 @@ name: Application code CICD Pipeline
 on: [push]
 
 env:
-  APP_IMAGE_VERSION: 1.1.0
-  NGINX_IMAGE_VERSION: 1.0.0
+  APP_IMAGE_VERSION: 1.2.0
+  NGINX_IMAGE_VERSION: 1.1.0
   APP_DOCKER_REPOSITORY: tambona29/financial-data-api
   NGINX_DOCKER_REPOSITORY: tambona29/nginx-demo
 jobs:
