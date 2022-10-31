@@ -211,7 +211,7 @@ This module performs the following operations:
 - Strenghten the account passwords policy
 - Rotate credentials regularly (90 days)
 - Create ECS task execution role
-- Create ECS task role
+- Create app role (to be assumed by the ECS task and the EC2 bastion host)
 
 ```bash
 cd terraform/live/global/iam
@@ -265,7 +265,7 @@ If you are new to this, a goood explanation of what VPCs are is detailed in [AWS
 
 It's [best practice](https://www.hyperglance.com/blog/aws-vpc-security-best-practices/) to create 1 VPC per application that you want to deploy and ideally 1 account per app, per environment to limit blast radius.
 
-module path:
+Module path:
 
 - [live/dev/vpc](live/dev/vpc)
 
@@ -283,7 +283,7 @@ Free. However beware of the [traffic cost](https://www.nops.io/aws-data-transfer
 
 ### D - Create security groups (instance-level firewalls)
 
-module path:
+Module path:
 
 - [live/dev/security-groups](live/dev/security-groups)
 
@@ -299,7 +299,7 @@ Free
 
 ### E - Create Postgres DB
 
-module path:
+Module path:
 
 - [live/dev/data-storage/rds](live/dev/data-storage/rds)
 
@@ -320,13 +320,13 @@ This comes at the cost that our application is not cloud-agnostic anymore since 
 
 #### Associated costs
 
-- $0.4/secret/month (as of 2022-10-30 cf AWS Secrets Manager Pricing)
+- $0.4/secret/month (as of 2022-10-30 cf [AWS Secrets Manager Pricing](https://aws.amazon.com/secrets-manager/pricing/))
 
 This db.t3.micro with 20 GB of General Purpose (SSD) DB storage instance sits into the AWS free-tier so it is free (cf [Amazon RDS Pricing](https://aws.amazon.com/rds/pricing/))
 
 ### F - DNS (Route 53)
 
-module path:
+Module path:
 
 - [live/dev/route53](live/dev/route53)
 
@@ -349,18 +349,20 @@ Also check out the great explanation on Route53 pricing in [this article](https:
 
 ### G - Create a bastion host
 
-module path:
+Module path:
 
 - [live/dev/ec2](live/dev/ec2)
 
 Resources added:
 
 - Set of RSA private/public keys
-- EC2 instance
+- EC2 instance (with pre-installed tools such as Docker and psql)
 
 Create EC2 instance in public subnet with restrictive security-group that only allows ssh from EC2 Instance connect. As we are using the region us-east-1 the IP range to whitelist is 18.206.107.24/29 cf [https://ip-ranges.amazonaws.com/ip-ranges.json](https://ip-ranges.amazonaws.com/ip-ranges.json). This bastion host is useful for troubleshooting issues from within the VPC (is my DNS private hosted zone working?) or accessing resources that sit in a private subnet (like the RDS DB for instance).
 
 For more info check out the official documentation: [Set up EC2 Instance Connect](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-connect-set-up.html)
+
+> Allow enough time (2-3min) for the instance to launch and run the commands in the `bastion_host_user_data.sh` script. If you try and ssh onto the instance straight after terraform has created it the package installs might not be finished yet.
 
 #### Associated costs
 
@@ -393,52 +395,31 @@ Let's use the following command to create the DB schema and populate our DB with
 3 - Run the following script on the machine
 
 ```bash
-# Update installed packages to the latest available releases.
-sudo yum -y update
-
-# "Git clone" the repo that contains test data.
-sudo yum -y install git
-git clone https://github.com/teddy-ambona/financial-data-api.git
-
-# Replace dev config placeholders with actual dev config.
-cd financial-data-api
-cp -r config/api_settings ./settings
-
-# Install Docker.
-sudo yum -y install docker
-sudo service docker start  # Start Docker daemon.
-sudo usermod -a -G docker ec2-user  # Avoid using "sudo" for each command.
+export AWS_DEFAULT_REGION=us-east-1
 
 # Populate dev DB with test data
-docker run --rm -e ENVIRONMENT=dev \
+docker run --rm \
+-e AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION} \
+-e ENVIRONMENT=dev \
 --entrypoint="" \
-tambona29/financial-data-api:1.1.0 python -c \
+tambona29/financial-data-api:1.2.0 python -c \
 "from tests.conftest import populate_db_for_local_testing; populate_db_for_local_testing();"
 
-# Install psql
-sudo tee /etc/yum.repos.d/pgdg.repo<<EOF
-[pgdg12]
-name=PostgreSQL 12 for RHEL/CentOS 7 - x86_64
-baseurl=https://download.postgresql.org/pub/repos/yum/12/redhat/rhel-7-x86_64
-enabled=1
-gpgcheck=0
-EOF
+# Fetch DB username and password from AWS Secrets
+secrets_json=$(aws secretsmanager get-secret-value --secret-id db/credentials --query SecretString --output text)
 
-sudo yum -y makecache
-sudo yum -y install postgresql12 postgresql12-server
-
-# Fetch DB password from AWS Secrets
-<to implement>
+export PGUSERNAME=$(echo $secrets_json | jq -r ' .DB_USERNAME')
+export PGPASSWORD=$(echo $secrets_json | jq -r ' .DB_PASSWORD')
 
 # Verify the data has been populated
-psql -h dev.custom_db_hostname.com -p 5432 -d market_data -U postgres -c "SELECT * FROM market_data.stocks_ohlcv;"
+psql -h dev.custom_db_hostname.com -p 5432 -d market_data -c "SELECT * FROM market_data.stocks_ohlcv;"
 ```
 
 ### I - Deploy serverless web-app (ECS with Fargate)
 
-module path:
+Module path:
 
-- [live/dev/ecs/financial-data-api](live/dev/services/financial-data-api)
+- [live/dev/ecs/financial-data-api](live/dev/ecs/financial-data-api)
 
 Resources added:
 
@@ -452,11 +433,11 @@ Elastic Container Services allows you to deploy containerized tasks on a cluster
 
 ECS does not run or execute your container (AWS Fargate will) but only provides the control plane to manage tasks. Below is the general architecture of our API in ECS with AWS Fargate.
 
-<img src="../docs/img/ecs_fargate.png" width="700"/>
+<img src="../docs/img/ecs_fargate.png" width="500"/>
 
 *(image drawn from [draw.io](https://www.draw.io/?splash=0&libs=aws4))*
 
-The service will build or kill tasks to meet the `desired_count` requirement (only 1 in this demo). Blue/Green deployment is the default behaviour for the ECS service provided you have more than task set in `desired_count`, otherwise you can expect some downtime.
+The service will build or kill tasks to meet the `desired_count` requirement (only 1 in this demo). Blue/Green deployment is the default behaviour for the ECS service provided you have more than one task set in `desired_count`, otherwise you can expect some downtime.
 
 Note that in the task definition we use the `awsvpc` network mode (cf [best practices](https://docs.aws.amazon.com/AmazonECS/latest/bestpracticesguide/application.html)) and maps the container port 5000 (gunicorn server) with the host however we only want to expose the Nginx server that runs on port 80. That's when the security-group at service level becomes useful as it is only allowing incoming traffic from port 80.
 
@@ -480,4 +461,5 @@ Unfortunately ECS is not part of the AWS free tier. For ECS with Fargate launch 
 |:--------------:|:--------:|:-----------:|
 |    FARGATE     |  0.04048 |  0.004445   |
 |  FARGATE SPOT  |  0.012144|  0.0013335  |
+
 *(prices as of 2022-10-30 cf [AWS Fargate Pricing](https://aws.amazon.com/fargate/pricing/))*
