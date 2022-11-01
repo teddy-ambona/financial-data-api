@@ -3,7 +3,7 @@
 - [1 - Environments segmentation](#1---environments-segmentation)
 - [2 - [Optional] If you have a new AWS account](#2---optional-if-you-have-a-new-aws-account)
 - [3 - Module dependencies](#3---module-dependencies)
-- [3 - Modules deployment](#3---modules-deployment)
+- [4 - Modules deployment](#4---modules-deployment)
   - [A - Create S3 bucket and Dynamo DB for state lock](#a---create-s3-bucket-and-dynamo-db-for-state-lock)
   - [B - Create IAM admin group and add admin user to it](#b---create-iam-admin-group-and-add-admin-user-to-it)
   - [C - Create VPC](#c---create-vpc)
@@ -25,9 +25,9 @@ The best practice is to apply changes through CICD pipeline only. However for bo
 
 ## 1 - Environments segmentation
 
-In this hands-on we leverage AWS Organization and segment environments(dev/stage/prod) using separate accounts. Each module has its own `terraform.state` file stored in s3, this is a best practice set to limit damages in case in errors. Also, the user who is running the terraform code does not need permission for the entire infrastructure but only for the resources he is trying to update.
+In this hands-on we segment environments(dev/prod) using separate `terraform.tfstate`. Each module has its own `terraform.state` file stored in s3, this is a best practice set to limit damages in case in errors. Also, the user who is running the terraform code does not need permission for the entire infrastructure but only for the resources he is trying to update.
 
-For each environment the below file structure will be created in s3:
+The below file structure will be created in s3:
 
 ```text
 ├── global
@@ -114,7 +114,7 @@ ds/terragrunt.hcl` and `A <-- B` means `A` imports `B`
 
 You can adjust `_envcommon/*` depending on how DRY you want your terraform code to be. I personally tend to only leave the variables declaration as well as the terraform states fetching in these files. The resources are not DRY and remain in the environment folders.
 
-## 3 - Modules deployment
+## 4 - Modules deployment
 
 ### A - Create S3 bucket and Dynamo DB for state lock
 
@@ -261,7 +261,7 @@ aws_session_token=<your session token>
 
 ### C - Create VPC
 
-If you are new to this, a goood explanation of what VPCs are is detailed in [AWS VPC Core Concepts in an Analogy and Guide](https://start.jcolemorrison.com/aws-vpc-core-concepts-analogy-guide/).
+If you are new to this, a good explanation of what VPCs are is detailed in [AWS VPC Core Concepts in an Analogy and Guide](https://start.jcolemorrison.com/aws-vpc-core-concepts-analogy-guide/).
 
 It's [best practice](https://www.hyperglance.com/blog/aws-vpc-security-best-practices/) to create 1 VPC per application that you want to deploy and ideally 1 account per app, per environment to limit blast radius.
 
@@ -337,7 +337,7 @@ Resources added:
 
 A private hosted zone is a container that holds information about how you want to route traffic for a domain and its subdomains within one or more VPCs without exposing your resources to the internet (cf [View and update DNS attributes for your VPC](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-dns.html#vpc-dns-updating))
 
-if you still struggle to troubleshoot DNS issues within your VPC https://aws.amazon.com/premiumsupport/knowledge-center/route-53-fix-dns-resolution-issues/
+if you still struggle to troubleshoot DNS issues within your VPC: [How can I troubleshoot Route 53 private hosted zone DNS resolution issues?](https://aws.amazon.com/premiumsupport/knowledge-center/route-53-fix-dns-resolution-issues/)
 
 #### Associated costs
 
@@ -358,7 +358,7 @@ Resources added:
 - Set of RSA private/public keys
 - EC2 instance (with pre-installed tools such as Docker and psql)
 
-Create EC2 instance in public subnet with restrictive security-group that only allows ssh from EC2 Instance connect. As we are using the region us-east-1 the IP range to whitelist is 18.206.107.24/29 cf [https://ip-ranges.amazonaws.com/ip-ranges.json](https://ip-ranges.amazonaws.com/ip-ranges.json). This bastion host is useful for troubleshooting issues from within the VPC (is my DNS private hosted zone working?) or accessing resources that sit in a private subnet (like the RDS DB for instance).
+Create EC2 instance in public subnet with restrictive security-group that only allows ssh from EC2 Instance connect. As we are using the region us-east-1 the IP range to whitelist is 18.206.107.24/29 cf [https://ip-ranges.amazonaws.com/ip-ranges.json](https://ip-ranges.amazonaws.com/ip-ranges.json). This bastion host is useful for troubleshooting issues from within the VPC (is my DNS private hosted zone working?) or accessing resources that sit in a private subnet (RDS DB for instance).
 
 For more info check out the official documentation: [Set up EC2 Instance Connect](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-connect-set-up.html)
 

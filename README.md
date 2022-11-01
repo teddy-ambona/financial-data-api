@@ -278,6 +278,9 @@ Running this locally means there will be a conflicting image tag when the Github
 
 ### B - Infra CICD workflow
 
+<img src="./docs/img/infra_cicd.png" width="700"/>
+<br></br>
+
 - **format:** Check if all Terraform configuration files are in a canonical format
 - **validate:** Verify whether a configuration is syntactically valid and internally consistent
 - **tflint:**
