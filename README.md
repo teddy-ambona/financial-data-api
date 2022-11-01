@@ -289,6 +289,12 @@ Running this locally means there will be a conflicting image tag when the Github
 
 One best practice is to always deploy from a single branch to avoid conflicting deployments.
 
+You can automatically generate the terragrunt [README.md](terraform/live/global/s3/README.md) files using this:
+
+```bash
+cd terraform && make terraform-docs DIR_PATH=live/global/s3/README.md
+```
+
 ### C - Running the CICD pipeline locally
 
 Install [act](https://github.com/nektos/act) to run the jobs on your local machine.
