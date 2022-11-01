@@ -290,6 +290,11 @@ Running this locally means there will be a conflicting image tag when the Github
 - **tfsec:** Static analysis of terraform templates to spot potential security issues
 - **infracost:** Infracost shows cloud cost estimates for Terraform
 
+Example of infracost automated PR comment:
+
+<img src="./docs/img/infracost_comment.png" width="700"/>
+<br></br>
+
 One best practice is to always deploy from a single branch to avoid conflicting deployments.
 
 You can automatically generate the terragrunt [README.md](terraform/live/global/s3/README.md) files using this:
