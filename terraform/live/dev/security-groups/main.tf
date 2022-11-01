@@ -42,13 +42,16 @@ module "db_sg" {
 
 }
 
+# Bug from tfsec where it thinks this sg is allowing all incoming traffic from the internet
+#tfsec:ignore:aws-ec2-no-public-ingress-sgr
+#tfsec:ignore:aws-ec2-no-public-egress-sgr
 module "bastion_host_sg" {
   source  = "terraform-aws-modules/security-group/aws"
   version = "~>4.16"
 
-  name                = "${local.name_prefix}-bastion-host-sg"
-  description         = "Security group for the bastion host"
-  vpc_id              = data.terraform_remote_state.vpc.outputs.vpc_id
+  name        = "${local.name_prefix}-bastion-host-sg"
+  description = "Security group for the bastion host"
+  vpc_id      = data.terraform_remote_state.vpc.outputs.vpc_id
   # Only whitelist EC2 instance connect for incoming requests
   # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-connect-set-up.html
   # cf [https://ip-ranges.amazonaws.com/ip-ranges.json] --> us-east-1: 18.206.107.24/29

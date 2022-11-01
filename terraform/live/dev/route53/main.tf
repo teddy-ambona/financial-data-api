@@ -19,8 +19,8 @@ resource "aws_route53_record" "dev-ns" {
   type    = "A"
 
   alias {
-    name    = data.terraform_remote_state.postgres_db.outputs.db_instance_address
-    zone_id = data.terraform_remote_state.postgres_db.outputs.db_instance_hosted_zone_id
+    name                   = data.terraform_remote_state.postgres_db.outputs.db_instance_address
+    zone_id                = data.terraform_remote_state.postgres_db.outputs.db_instance_hosted_zone_id
     evaluate_target_health = true
   }
 }

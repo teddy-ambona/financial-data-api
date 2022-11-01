@@ -46,6 +46,7 @@ populate-db:
 # Start localstack and create a secret called "db/credentials"
 aws-secrets-manager:
 	docker-compose -f docker/docker-compose.yaml up -d localstack
+	sleep 2  # Wait for localstack to be up and running
 	docker run --rm --entrypoint="" --network host localstack/localstack bash -c \
 	"awslocal secretsmanager create-secret \
 	--name db/credentials \

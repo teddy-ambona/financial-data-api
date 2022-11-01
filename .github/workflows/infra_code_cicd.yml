@@ -1,6 +1,6 @@
 ---
 name: Infrastructure code CICD Pipeline
-on: [pull_request]
+on: [push]
 
 jobs:
   format:
@@ -56,7 +56,6 @@ jobs:
         for dir in `find . -maxdepth 1 -mindepth 1 -type d -not -path ./_envcommon`
         do
           (cd "$dir" && terragrunt run-all validate)
-
         done
 
     - name: Terragrunt validate-inputs recursively

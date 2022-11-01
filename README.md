@@ -2,13 +2,13 @@
 
 - [1 - Architecture](#1---architecture)
   - [A - App CICD architecture](#a---app-cicd-architecture)
-  - [B - Cloud architecture](#b---cloud-architecture)
+  - [B - Cloud architecture (AWS)](#b---cloud-architecture-aws)
 - [2 - Prerequisites](#2---prerequisites)
 - [3 - Quickstart](#3---quickstart)
   - [A - Run local stack](#a---run-local-stack)
   - [B - Deploy the infrastructure on AWS](#b---deploy-the-infrastructure-on-aws)
 - [4 - Project file structure](#4---project-file-structure)
-- [5 - CICD](#5---cicd)
+- [5 - Gitops](#5---gitops)
   - [A - App CICD workflow](#a---app-cicd-workflow)
   - [B - Infra CICD workflow](#b---infra-cicd-workflow)
   - [C - Running the CICD pipeline locally](#c---running-the-cicd-pipeline-locally)
@@ -51,7 +51,6 @@ This repo is a demo project for dockerized flask applications (REST API). This s
   - IAM configuration (RBAC)
   - AWS Secrets Manager
   - ECS with Fargate (Blue/Green deployment)
-
 - Github Actions CICD:
   - Security scanner (tfsec)
   - Static analysis to enforce best practices (tflint, validate, fmt)
@@ -66,7 +65,12 @@ This repo is a demo project for dockerized flask applications (REST API). This s
 
 <img src="./docs/img/app_cicd_architecture.png" width="700"/>
 
-### B - Cloud architecture
+### B - Cloud architecture (AWS)
+
+<img src="./docs/img/cloud_architecture.png" width="700"/>
+
+*(image drawn on [Cloudcraft](https://app.cloudcraft.co/))*
+<br></br>
 
 Basic 3-tier application:
 
@@ -249,7 +253,7 @@ In [./terraform](./terraform)
 
 `live` and `modules` folders should sit in 2 separate git repos where `live` contains the currently deployed infratructure whilst `modules` should contain user defined modules. In this repo I only reuse existing terraform modules so `live` and `modules` folders are just placeholders. The idea behind having `live` vs `modules` git repos is to make sure you can point at a versioned module in dev/stage/prod and reduce the risk of impacting prod.
 
-## 5 - CICD
+## 5 - Gitops
 
 ### A - App CICD workflow
 
@@ -282,6 +286,8 @@ Running this locally means there will be a conflicting image tag when the Github
   - Enforce best practices, naming conventions
 - **tfsec:** Static analysis of terraform templates to spot potential security issues
 - **infra-cost:** Infracost shows cloud cost estimates for Terraform
+
+One best practice is to always deploy from a single branch to avoid conflicting deployments.
 
 ### C - Running the CICD pipeline locally
 
@@ -502,9 +508,11 @@ Taking a Flask app from development to production is a demanding but rewarding p
 - Network protections for all of your Amazon Virtual Private Clouds (VPCs) from layer 3 to layer 7 ([AWS Network Firewall](https://aws.amazon.com/network-firewall/?whats-new-cards.sort-by=item.additionalFields.postDateTime&whats-new-cards.sort-order=desc))
 - VPC interface endpoints to avoid exposing data to the internet ([AWS PrivateLink](https://aws.amazon.com/privatelink/))
 - ML powered anomaly detection in VPC flow logs / Cloudtrail logs / DNS logs / EKS audit logs ([Amazon Guard Duty](https://aws.amazon.com/guardduty/))
+- [Storage autoscaling for the RDS DB](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_PIOPS.StorageTypes.html#USER_PIOPS.Autoscaling)
 
 ## 11 - Useful resources
 
 - [Docker Best Practices for Python Developers](https://testdriven.io/blog/docker-best-practices/)
 - [How Amazon ECS manages CPU and memory resources](https://aws.amazon.com/blogs/containers/how-amazon-ecs-manages-cpu-and-memory-resources/)
 - [Getting Out of Tricky Terraform Situations](https://spin.atomicobject.com/2021/03/01/terraform-troubleshooting/)
+- [Testing IAM policies with the IAM policy simulator](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_testing-policies.html)

@@ -164,7 +164,7 @@ cython_debug/
 .devcontainer
 
 # File that contains secret variables
-.secrets.txt
+secrets.txt
 
 # Local .terraform directories
 **/.terraform/*

@@ -1,6 +1,15 @@
-.PHONY: tfsec infracost
+.PHONY: tflint tfsec infracost
 
 DRUN = docker run --rm -v ${PWD}:/terraform
+
+tflint:
+	cd live
+
+	# Install AWS plugin
+	tflint --init
+
+	# Parse files recursively and save output in a txt file
+	find -type d -not -path '*.terraform/*' -exec tflint -f compact {} \;
 
 tfsec:
 	$(DRUN) aquasec/tfsec /terraform --minimum-severity HIGH

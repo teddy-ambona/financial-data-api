@@ -408,7 +408,7 @@ tambona29/financial-data-api:1.2.0 python -c \
 # Fetch DB username and password from AWS Secrets
 secrets_json=$(aws secretsmanager get-secret-value --secret-id db/credentials --query SecretString --output text)
 
-export PGUSERNAME=$(echo $secrets_json | jq -r ' .DB_USERNAME')
+export PGUSER=$(echo $secrets_json | jq -r ' .DB_USERNAME')
 export PGPASSWORD=$(echo $secrets_json | jq -r ' .DB_PASSWORD')
 
 # Verify the data has been populated
@@ -437,7 +437,7 @@ ECS does not run or execute your container (AWS Fargate will) but only provides 
 
 *(image drawn from [draw.io](https://www.draw.io/?splash=0&libs=aws4))*
 
-The service will build or kill tasks to meet the `desired_count` requirement (only 1 in this demo). Blue/Green deployment is the default behaviour for the ECS service provided you have more than one task set in `desired_count`, otherwise you can expect some downtime.
+Two IAM roles are needed here, the previously created `ecs_task_execution_role` is assigned to the service so that ECS can pull the image from Dockerhub and send the logs to Cloudwatch and the `app_role` is attached to the task itself. The service will build or kill tasks to meet the `desired_count` requirement (only 1 in this demo). Blue/Green deployment is the default behaviour for the ECS service provided you have more than one task set in `desired_count`, otherwise you can expect some downtime.
 
 Note that in the task definition we use the `awsvpc` network mode (cf [best practices](https://docs.aws.amazon.com/AmazonECS/latest/bestpracticesguide/application.html)) and maps the container port 5000 (gunicorn server) with the host however we only want to expose the Nginx server that runs on port 80. That's when the security-group at service level becomes useful as it is only allowing incoming traffic from port 80.
 

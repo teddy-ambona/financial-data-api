@@ -51,6 +51,11 @@ module "postgres_db" {
 
   vpc_security_group_ids = [data.terraform_remote_state.sg.outputs.db_sg_id]
 
+  # Multi availability zones for Disaster Recovery with automatic failover to the standby instance
+  # The standby instance cannot be queried and becomes useful only when failure happens with primary.
+  # Should be "true" in production
+  multi_az = false
+
   # Associate DB to private subnets in order to avoid connection from the internet.
   subnet_ids = data.terraform_remote_state.vpc.outputs.private_subnets_ids
 

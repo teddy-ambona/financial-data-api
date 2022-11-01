@@ -27,6 +27,17 @@ resource "aws_instance" "bastion_host" {
   associate_public_ip_address = true
   iam_instance_profile        = aws_iam_instance_profile.bastion_host_profile.name
 
+  # Encrypt default EBS device
+  root_block_device {
+    encrypted = true
+  }
+
+  # Activate session tokens for Instance Metadata Service
+  # cf https://aquasecurity.github.io/tfsec/v1.28.0/checks/aws/ec2/enforce-http-token-imds/
+  metadata_options {
+    http_tokens = "required"
+  }
+
   # Security group that limits inbound traffic to SSH instance connect only
   security_groups = [data.terraform_remote_state.sg.outputs.bastion_host_sg_id]
 

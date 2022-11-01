@@ -41,8 +41,8 @@ inputs = {
   nginx_container_memory = 512 # (0.5 GBs)
 
   # https://aws.amazon.com/premiumsupport/knowledge-center/ecs-cpu-allocation/
-  task_cpu    = 512 # (0.5 vCPU)
+  task_cpu    = 512  # (0.5 vCPU)
   task_memory = 1024 # (1 GB)
 
-  aws_log_group    = "/aws/ecs/aws-fargate-demo/application-stack"
+  aws_log_group = "/aws/ecs/aws-fargate-demo/application-stack"
 }
