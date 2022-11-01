@@ -67,7 +67,7 @@ This repo is a demo project for dockerized flask applications (REST API). This s
 
 ### B - Cloud architecture (AWS)
 
-<img src="./docs/img/cloud_architecture.png" width="700"/>
+<img src="./docs/img/cloud_architecture.png" width="850"/>
 
 *(image drawn on [Cloudcraft](https://app.cloudcraft.co/))*
 <br></br>
@@ -182,23 +182,22 @@ In [./app](./app)
 ```text
 .
 ├── config
-│   ├── .yamllint
-│   └── api_settings
-│       ├── dev
-│       │   └── config.yaml
-│       ├── local
-│       │   └── config.yaml
-│       ├── prod
-│       │   └── config.yaml
-│       ├── test
-│       │    └── config.yaml
-│       └── gunicorn.py
+│   ├── dev
+│   │   └── config.yaml
+│   ├── local
+│   │   └── config.yaml
+│   ├── prod
+│   │   └── config.yaml
+│   ├── test
+│   │    └── config.yaml
+│   └── gunicorn.py
 ├── docker
 │   ├── app
 │   │   └── Dockerfile
 │   ├── nginx
 │   │   ├── Dockerfile
-│   │   └── nginx.conf
+│   │   ├── nginx.ecs.conf
+│   │   └── nginx.local.conf
 │   └── docker-compose.yaml
 ├── src
 │   ├── __init__.py
@@ -221,6 +220,7 @@ In [./app](./app)
 │       ├── __init__.py
 │       └── test_helpers.py
 ├── .dockerignore
+├── .yamllint
 ├── Makefile
 ├── requirements.in
 ├── requirements.txt
@@ -251,7 +251,7 @@ In [./terraform](./terraform)
 
  `<resource>` can be "vpc" or "security-groups" for instance.
 
-`live` and `modules` folders should sit in 2 separate git repos where `live` contains the currently deployed infratructure whilst `modules` should contain user defined modules. In this repo I only reuse existing terraform modules so `live` and `modules` folders are just placeholders. The idea behind having `live` vs `modules` git repos is to make sure you can point at a versioned module in dev/stage/prod and reduce the risk of impacting prod.
+`live` and `modules` folders should sit in 2 separate git repos where `live` contains the currently deployed infratructure whilst `modules` should contain user defined modules. In this repo I only reuse existing terraform modules so `live` and `modules` folders are just placeholders. The idea behind having `live` vs `modules` git repos is to make sure you can point at a versioned module in dev/stage/prod and reduce the risk of impacting prod. Note that for simplicity only `dev` is implemented in this demo
 
 ## 5 - Gitops
 
