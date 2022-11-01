@@ -2,13 +2,16 @@
 
 - [1 - Architecture](#1---architecture)
   - [A - App CICD architecture](#a---app-cicd-architecture)
+  - [B - Cloud architecture (AWS)](#b---cloud-architecture-aws)
 - [2 - Prerequisites](#2---prerequisites)
 - [3 - Quickstart](#3---quickstart)
   - [A - Run local stack](#a---run-local-stack)
+  - [B - Deploy the infrastructure on AWS](#b---deploy-the-infrastructure-on-aws)
 - [4 - Project file structure](#4---project-file-structure)
-- [5 - CICD](#5---cicd)
+- [5 - Gitops](#5---gitops)
   - [A - App CICD workflow](#a---app-cicd-workflow)
-  - [B - Running the CICD pipeline locally](#b---running-the-cicd-pipeline-locally)
+  - [B - Infra CICD workflow](#b---infra-cicd-workflow)
+  - [C - Running the CICD pipeline locally](#c---running-the-cicd-pipeline-locally)
 - [6 - Docker image build pattern](#6---docker-image-build-pattern)
   - [A - SemVer2](#a---semver2)
   - [B - Version bump](#b---version-bump)
@@ -17,6 +20,11 @@
   - [B - Four-Phase Test (Gerard Meszaros)](#b---four-phase-test-gerard-meszaros)
   - [C - Debugging the code with VS Code remote-container extension](#c---debugging-the-code-with-vs-code-remote-container-extension)
 - [8 - Gunicorn application server and Nginx reverse proxy](#8---gunicorn-application-server-and-nginx-reverse-proxy)
+- [9 - Deployment to AWS with Terraform](#9---deployment-to-aws-with-terraform)
+  - [A - Keep your code DRY with Terragrunt](#a---keep-your-code-dry-with-terragrunt)
+  - [B - Best practices](#b---best-practices)
+- [10 - Improvements](#10---improvements)
+- [11 - Useful resources](#11---useful-resources)
 
 This repo is a demo project for dockerized flask applications (REST API). This simplified API exposes GET endpoints that allow you to pull stock prices and trading indicators. What is covered in this repo:
 
@@ -26,7 +34,7 @@ This repo is a demo project for dockerized flask applications (REST API). This s
   - Static analysis: flake8, pydocstyle
   - Image misconfiguration/vulnerabilities (Trivy), passing artifacts between jobs
   - Testing patterns with Pytests (unit / integration)
-  - Docker image build and distribution pattern
+  - Docker image multi-stage build and distribution pattern
 - Docker PostgreSQL DB setup for local testing
 - Services configuration with Docker Compose
 - Makefile template
@@ -35,17 +43,50 @@ This repo is a demo project for dockerized flask applications (REST API). This s
 - Nginx (reverse proxy) and Gunicorn (WSGI) implementation
 - Dependency injection
 
+**Infrastructure code:**
+
+- Multi AZ serverless architecture:
+  - VPC, Security-groups
+  - RDS DB, S3, Route53
+  - IAM configuration (RBAC)
+  - AWS Secrets Manager
+  - ECS with Fargate (Blue/Green deployment)
+- Github Actions CICD:
+  - Security scanner (tfsec)
+  - Static analysis to enforce best practices (tflint, validate, fmt)
+  - Automated infrastructure cost estimation (with Infracost)
+- Terragrunt patterns to keep the code DRY across environments
+- Automated architecture diagrams from Terraform code
+- Terraform remote backend bootstrap
+
 ## 1 - Architecture
 
 ### A - App CICD architecture
 
 <img src="./docs/img/app_cicd_architecture.png" width="700"/>
 
+### B - Cloud architecture (AWS)
+
+<img src="./docs/img/cloud_architecture.png" width="850"/>
+
+*(image drawn on [Cloudcraft](https://app.cloudcraft.co/))*
+<br></br>
+
+Basic 3-tier application:
+
+- Application layer
+- Business logic layer
+- Data access layer
+
 ## 2 - Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/)
 - [Docker Compose CLI plugin](https://docs.docker.com/compose/install/compose-plugin/)
 - If running on windows: [Docker remote containers on WSL 2](https://docs.microsoft.com/en-us/windows/wsl/tutorials/wsl-containers)
+- [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
+- [Terraform CLI](https://www.terraform.io/cli/install/apt)
+- [Terragrunt](https://terragrunt.gruntwork.io/docs/getting-started/install/)
+- [(Optional) Jq](https://stedolan.github.io/jq/download/)
 
 > The API doesn't require python installed on your machine.
 
@@ -114,15 +155,23 @@ $ curl -G -d 'interval=1' -d 'frequency=Annual' http://localhost/stocks/time-ser
 ]
 ```
 
+### B - Deploy the infrastructure on AWS
+
+A step by step guide to financial-data-api IaC is accessible in [terraform/README.md](terraform/README.md)
+
 ## 4 - Project file structure
+
+The best practice is for infrastructure and application code to sit in different repos, however I wanted to make this demo project self-contained.
 
 ```text
 .
 ├── .github
 │   ├── workflow
-│   │   └── app_code_cicd.yml
+│   │   │── app_code_cicd.yml
+│   │   └── infra_code_cicd.yml
 ├── app
 ├── docs
+├── terraform
 ├── .gitignore
 ├── Makefile
 ├── README.md
@@ -133,23 +182,22 @@ In [./app](./app)
 ```text
 .
 ├── config
-│   ├── .yamllint
-│   └── api_settings
-│       ├── dev
-│       │   └── config.yaml
-│       ├── local
-│       │   └── config.yaml
-│       ├── prod
-│       │   └── config.yaml
-│       ├── test
-│       │    └── config.yaml
-│       └── gunicorn.py
+│   ├── dev
+│   │   └── config.yaml
+│   ├── local
+│   │   └── config.yaml
+│   ├── prod
+│   │   └── config.yaml
+│   ├── test
+│   │    └── config.yaml
+│   └── gunicorn.py
 ├── docker
 │   ├── app
 │   │   └── Dockerfile
 │   ├── nginx
 │   │   ├── Dockerfile
-│   │   └── nginx.conf
+│   │   ├── nginx.ecs.conf
+│   │   └── nginx.local.conf
 │   └── docker-compose.yaml
 ├── src
 │   ├── __init__.py
@@ -172,12 +220,40 @@ In [./app](./app)
 │       ├── __init__.py
 │       └── test_helpers.py
 ├── .dockerignore
+├── .yamllint
 ├── Makefile
 ├── requirements.in
 ├── requirements.txt
 ```
 
-## 5 - CICD
+In [./terraform](./terraform)
+
+```text
+.
+├── live
+│   ├── _envcommon
+│   │   └── <resource>.hcl
+│   ├── global
+│   │   ├── s3
+│   │   └── iam
+│   ├── <environment>
+│   │   ├── env.hcl
+│   │   └── <resource>
+│   │       ├── main.tf
+│   │       ├── README.md
+│   │       └── terragrunt.hcl
+│   ├── .tflint.hcl
+│   └── infracost.yml
+├── modules
+├── Makefile
+└── README.md
+```
+
+ `<resource>` can be "vpc" or "security-groups" for instance.
+
+`live` and `modules` folders should sit in 2 separate git repos where `live` contains the currently deployed infratructure whilst `modules` should contain user defined modules. In this repo I only reuse existing terraform modules so `live` and `modules` folders are just placeholders. The idea behind having `live` vs `modules` git repos is to make sure you can point at a versioned module in dev/stage/prod and reduce the risk of impacting prod. Note that for simplicity only `dev` is implemented in this demo
+
+## 5 - Gitops
 
 ### A - App CICD workflow
 
@@ -200,7 +276,34 @@ In [./app](./app)
 This is ensured using `if: ${{ !env.ACT }}` in the `push-to-registry` jobs.
 Running this locally means there will be a conflicting image tag when the Github Actions CICD will try and run it a second time.
 
-### B - Running the CICD pipeline locally
+### B - Infra CICD workflow
+
+<img src="./docs/img/infra_cicd.png" width="700"/>
+<br></br>
+
+- **format:** Check if all Terraform configuration files are in a canonical format
+- **validate:** Verify whether a configuration is syntactically valid and internally consistent
+- **tflint:**
+  - Find possible errors (like illegal instance types)
+  - Warn about deprecated syntax, unused declarations
+  - Enforce best practices, naming conventions
+- **tfsec:** Static analysis of terraform templates to spot potential security issues
+- **infracost:** Infracost shows cloud cost estimates for Terraform
+
+Example of infracost automated PR comment:
+
+<img src="./docs/img/infracost_comment.png" width="700"/>
+<br></br>
+
+One best practice is to always deploy from a single branch to avoid conflicting deployments.
+
+You can automatically generate the terragrunt [README.md](terraform/live/global/s3/README.md) files using this:
+
+```bash
+cd terraform && make terraform-docs DIR_PATH=live/global/s3/README.md
+```
+
+### C - Running the CICD pipeline locally
 
 Install [act](https://github.com/nektos/act) to run the jobs on your local machine.
 
@@ -208,6 +311,7 @@ Example:
 
 ```bash
 make app-cicd  # Run the full app CICD pipeline without pushing to Docker Hub
+infra-cicd  # Run the full infrastructure CICD pipeline without applying changes
 ```
 
 These commands require `secrets.txt` with this content:
@@ -216,6 +320,7 @@ These commands require `secrets.txt` with this content:
 GITHUB_TOKEN=<YOUR_PAT_TOKEN>
 DOCKERHUB_USERNAME=<YOUR_DOCKERHUB_USERNAME>
 DOCKERHUB_TOKEN=<YOUR_DOCKERHUB_TOKEN>
+INFRACOST_API_KEY=<YOUR_INFRACOST_API_KEY>
 ```
 
 Optionally you could also run pipeline jobs using the [Makefile](./app/Makefile) directly.
@@ -360,3 +465,68 @@ When deployed to AWS our app will look similar to the illustration below, with m
 
 *(image from [A guide to deploying Machine/Deep Learning model(s) in Productionn](https://medium.com/@maheshkkumar/a-guide-to-deploying-machine-deep-learning-model-s-in-production-e497fd4b734a))*
 <br></br>
+
+## 9 - Deployment to AWS with Terraform
+
+IMPORTANT: Following these instructions will deploy code into your AWS account. All of this qualifies for the AWS Free Tier, but if you've already used up your credits, running this code may cost you money. Also this repo is meant to be deployed to your sandbox environment.
+
+[Terraform](https://www.terraform.io/docs) is an infrastructure as code (IaC) tool that allows you to build, change, and version infrastructure safely and efficiently. This includes both low-level components like compute instances, storage, and networking, as well as high-level components like DNS entries and SaaS features. I you are new to Terraform I recommend you read this first [A Comprehensive Guide to Terraform](https://blog.gruntwork.io/a-comprehensive-guide-to-terraform-b3d32832baca#.b6sun4nkn).
+
+Also check [why choosing Terraform over other configuration management and provisioning tools](https://blog.gruntwork.io/why-we-use-terraform-and-not-chef-puppet-ansible-saltstack-or-cloudformation-7989dad2865c). TLDR; Terraform is an open source, cloud-agnostic provisioning tool that supports immutable infrastructure, a declarative language, and a client-only architecture.
+
+### A - Keep your code DRY with Terragrunt
+
+Terragrunt is a thin wrapper for Terraform that provides extra tools for working with multiple Terraform modules. https://www.gruntwork.io
+
+Sample for reference: https://github.com/gruntwork-io/terragrunt-infrastructure-live-example
+
+Teragrunt generated files start with the prefix "terragrunt_" and are ignored in the `.gitignore` file to prevent them from being accidentally commmitted.
+
+### B - Best practices
+
+I strongly recommend going through the [terraform best practices](https://github.com/ozbillwang/terraform-best-practices) before exploring this repo.
+
+This hands-on complies with the [6 pillars for architecture solution](https://aws.amazon.com/architecture/well-architected):
+
+**Operational Excellence** – The ability to run and monitor systems to deliver business value and to continually improve supporting processes and procedures.
+
+**Security** – The ability to protect information, systems, and assets while delivering business value through risk assessments and mitigation strategies.
+
+**Reliability** – The ability of a system to recover from infrastructure or service disruptions, dynamically acquire computing resources to meet demand, and mitigate disruptions such as misconfigurations or transient network issues.
+
+**Performance Efficiency** – The ability to use computing resources efficiently to meet system requirements, and to maintain that efficiency as demand changes and technologies evolve.
+
+**Cost Optimization** – The ability to run systems to deliver business value at the lowest price point.
+
+These pillars aren't trade-off but they should be synergies, for example better sustainability means better performance efficiency and operational excellence means better cost optimization.
+
+A useful tool when it comes to enforcing best practices across your cloud infrastruture is [Amazon Trusted Advisor](https://aws.amazon.com/premiumsupport/technology/trusted-advisor/) which has a free version in the Amazon Web Services Management Console. Only a limited version is available in the free-tier though.
+
+A good architecture design can be facilitated by following these [AWS General design principles](https://wa.aws.amazon.com/wat.design_principles.wa-dp.en.html):
+
+- Stop guessing your capacity needs
+- Test systems at production scale
+- Automate to make architectural experimentation easier
+- Allow for evolutionary architectures
+- Drive architectures using data
+- Improve through game days
+
+## 10 - Improvements
+
+Taking a Flask app from development to production is a demanding but rewarding process. There are a couple of areas that I have omitted but would need to be addressed in a real production environment such as:
+
+- Securing the endpoints with HTTPS ([AWS Certificate Manager](https://aws.amazon.com/certificate-manager/))
+- User management and authentication for the backend API ([AWS Cognito](https://aws.amazon.com/cognito/))
+- Adding monitoring/tracing tools (with Prometheus and Grafana for instance)
+- Protection from common web exploits ([Web Application Firewall](https://aws.amazon.com/marketplace/solutions/security/web-application-firewall))
+- Network protections for all of your Amazon Virtual Private Clouds (VPCs) from layer 3 to layer 7 ([AWS Network Firewall](https://aws.amazon.com/network-firewall/?whats-new-cards.sort-by=item.additionalFields.postDateTime&whats-new-cards.sort-order=desc))
+- VPC interface endpoints to avoid exposing data to the internet ([AWS PrivateLink](https://aws.amazon.com/privatelink/))
+- ML powered anomaly detection in VPC flow logs / Cloudtrail logs / DNS logs / EKS audit logs ([Amazon Guard Duty](https://aws.amazon.com/guardduty/))
+- [Storage autoscaling for the RDS DB](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_PIOPS.StorageTypes.html#USER_PIOPS.Autoscaling)
+
+## 11 - Useful resources
+
+- [Docker Best Practices for Python Developers](https://testdriven.io/blog/docker-best-practices/)
+- [How Amazon ECS manages CPU and memory resources](https://aws.amazon.com/blogs/containers/how-amazon-ecs-manages-cpu-and-memory-resources/)
+- [Getting Out of Tricky Terraform Situations](https://spin.atomicobject.com/2021/03/01/terraform-troubleshooting/)
+- [Testing IAM policies with the IAM policy simulator](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_testing-policies.html)

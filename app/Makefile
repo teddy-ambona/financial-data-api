@@ -9,9 +9,9 @@ DBASH = $(DRUN) -u root -v ${PWD}:/foo -w="/foo" python bash -c
 build-app:
 	docker build -f docker/app/Dockerfile -t flask-app .
 
-# Build Nginx (reverse proxy) Docker image
+# Build Nginx (reverse proxy) Docker image using local conf file
 build-nginx:
-	docker build -f docker/nginx/Dockerfile -t flask-app-nginx .
+	docker build --target image-local -f docker/nginx/Dockerfile -t flask-app-nginx .
 
 # To see logs just remove the -d arg that runs the app as a daemon container
 up:
@@ -46,6 +46,7 @@ populate-db:
 # Start localstack and create a secret called "db/credentials"
 aws-secrets-manager:
 	docker-compose -f docker/docker-compose.yaml up -d localstack
+	sleep 2  # Wait for localstack to be up and running
 	docker run --rm --entrypoint="" --network host localstack/localstack bash -c \
 	"awslocal secretsmanager create-secret \
 	--name db/credentials \
