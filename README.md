@@ -285,7 +285,7 @@ Running this locally means there will be a conflicting image tag when the Github
   - Warn about deprecated syntax, unused declarations
   - Enforce best practices, naming conventions
 - **tfsec:** Static analysis of terraform templates to spot potential security issues
-- **infra-cost:** Infracost shows cloud cost estimates for Terraform
+- **infracost:** Infracost shows cloud cost estimates for Terraform
 
 One best practice is to always deploy from a single branch to avoid conflicting deployments.
 
