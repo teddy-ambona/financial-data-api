@@ -1,6 +1,8 @@
 ---
 name: Infrastructure code CICD Pipeline
-on: [pull_request]
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, edited, closed]
 
 jobs:
   format:
