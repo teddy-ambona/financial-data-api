@@ -1,14 +1,21 @@
-#tfsec:ignore:aws-ec2-no-public-ingress-sgr
 #tfsec:ignore:aws-ec2-no-public-egress-sgr
 module "web_server_sg" {
   source  = "terraform-aws-modules/security-group/aws"
   version = "~>4.16"
 
-  name                = "${local.name_prefix}-web-server-sg"
-  description         = "Security group for web-server"
-  vpc_id              = data.terraform_remote_state.vpc.outputs.vpc_id
-  ingress_cidr_blocks = ["0.0.0.0/0"]
-  ingress_rules       = ["http-80-tcp"]
+  name        = "${local.name_prefix}-web-server-sg"
+  description = "Security group for web-server"
+  vpc_id      = data.terraform_remote_state.vpc.outputs.vpc_id
+
+  # Allow webserver to only allow incomming traffic from instances that have the
+  # "alb_sg" security-group attached to them
+  computed_ingress_with_source_security_group_id = [
+    {
+      rule                     = "http-80-tcp"
+      source_security_group_id = module.alb_sg.security_group_id
+    }
+  ]
+  number_of_computed_ingress_with_source_security_group_id = 1
 
   # Add egress rule so that the ECS service can do "docker pull" and also connect to the RDS instance.
   # Docker Hub does not have a list of static IP addressed so we allow all IPs. Migrating to ECR could provide
@@ -32,8 +39,11 @@ module "db_sg" {
   vpc_id      = data.terraform_remote_state.vpc.outputs.vpc_id
 
   # Only allow requests coming from VPC CIDR blocks
-  ingress_cidr_blocks = ["10.0.1.0/24", "10.0.2.0/24", "10.0.101.0/24", "10.0.102.0/24"]
-  ingress_rules       = ["postgresql-tcp"]
+  ingress_cidr_blocks = concat(
+    data.terraform_remote_state.vpc.outputs.private_subnets_cidr_blocks,
+    data.terraform_remote_state.vpc.outputs.public_subnets_cidr_blocks
+  )
+  ingress_rules = ["postgresql-tcp"]
 
   tags = {
     Terraform   = "true"
@@ -72,4 +82,32 @@ module "bastion_host_sg" {
     Environment = local.environment
   }
 
+}
+
+# Application Load Balancer security group
+#tfsec:ignore:aws-ec2-no-public-ingress-sgr
+module "alb_sg" {
+  source  = "terraform-aws-modules/security-group/aws"
+  version = "~>4.16"
+
+  name                = "${local.name_prefix}-alb-sg"
+  description         = "Security group for ALB"
+  vpc_id              = data.terraform_remote_state.vpc.outputs.vpc_id
+  ingress_cidr_blocks = ["0.0.0.0/0"]
+  ingress_rules       = ["http-80-tcp"]
+
+  # Allow ALB to only send outbound request to instances that have the
+  # "web_server_sg" security-group attached to them
+  computed_egress_with_source_security_group_id = [
+    {
+      rule                     = "http-80-tcp"
+      source_security_group_id = module.web_server_sg.security_group_id
+    }
+  ]
+  number_of_computed_egress_with_source_security_group_id = 1
+
+  tags = {
+    Terraform   = "true"
+    Environment = local.environment
+  }
 }

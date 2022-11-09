@@ -88,6 +88,12 @@ resource "aws_ecs_service" "financial_data_api_service" {
   desired_count   = 1
   launch_type     = "FARGATE"
 
+  load_balancer {
+    target_group_arn = data.terraform_remote_state.alb.outputs.target_group_arns[0]
+    container_name   = "nginx"
+    container_port   = 80
+  }
+
   network_configuration {
     security_groups  = [data.terraform_remote_state.sg.outputs.web_server_sg_id]
     subnets          = data.terraform_remote_state.vpc.outputs.public_subnets_ids

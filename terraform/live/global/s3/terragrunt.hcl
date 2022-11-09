@@ -23,3 +23,18 @@ provider "aws" {
 }
 EOF
 }
+
+remote_state {
+  backend = "s3"
+  generate = {
+    path      = "terragrunt_backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    bucket         = "financial-data-api-demo-state"
+    key            = "global/s3/terraform.tfstate"
+    region         = local.env_vars.locals.aws_region
+    dynamodb_table = "financial-data-api-demo-locks"
+    encrypt        = true
+  }
+}

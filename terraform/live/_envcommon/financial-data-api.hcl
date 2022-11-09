@@ -1,5 +1,5 @@
 dependencies {
-  paths = ["../../vpc", "../../security-groups", "../../data-storage/rds", "../../route53"]
+  paths = ["../../vpc", "../../security-groups", "../../data-storage/rds", "../../route53", "../../alb"]
 }
 
 locals {
@@ -103,6 +103,17 @@ data "terraform_remote_state" "vpc" {
     bucket = "${local.env_vars.locals.remote_state_bucket}"
     region = "${local.env_vars.locals.aws_region}"
     key = "${local.env_vars.locals.environment}/vpc/terraform.tfstate"
+  }
+}
+
+# Allow fetching ALB ARN from the state file
+data "terraform_remote_state" "alb" {
+  backend = "s3"
+
+  config = {
+    bucket = "${local.env_vars.locals.remote_state_bucket}"
+    region = "${local.env_vars.locals.aws_region}"
+    key = "${local.env_vars.locals.environment}/alb/terraform.tfstate"
   }
 }
 EOF

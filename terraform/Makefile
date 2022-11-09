@@ -1,4 +1,4 @@
-.PHONY: tflint tfsec infracost
+.PHONY: tflint tfsec infracost terraform-docs
 
 DRUN = docker run --rm -v ${PWD}:/terraform
 

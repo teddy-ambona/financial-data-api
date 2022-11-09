@@ -1,25 +1,31 @@
 # Terraform deployment
 
-- [1 - Environments segmentation](#1---environments-segmentation)
-- [2 - [Optional] If you have a new AWS account](#2---optional-if-you-have-a-new-aws-account)
-- [3 - Module dependencies](#3---module-dependencies)
-- [4 - Modules deployment](#4---modules-deployment)
-  - [A - Create S3 bucket and Dynamo DB for state lock](#a---create-s3-bucket-and-dynamo-db-for-state-lock)
-  - [B - Create IAM admin group and add admin user to it](#b---create-iam-admin-group-and-add-admin-user-to-it)
-  - [C - Create VPC](#c---create-vpc)
-    - [Associated costs](#associated-costs)
-  - [D - Create security groups (instance-level firewalls)](#d---create-security-groups-instance-level-firewalls)
-    - [Associated costs](#associated-costs-1)
-  - [E - Create Postgres DB](#e---create-postgres-db)
-    - [About AWS Secret Manager](#about-aws-secret-manager)
-    - [Associated costs](#associated-costs-2)
-  - [F - DNS (Route 53)](#f---dns-route-53)
-    - [Associated costs](#associated-costs-3)
-  - [G - Create a bastion host](#g---create-a-bastion-host)
-    - [Associated costs](#associated-costs-4)
-  - [H - RDS PostgreSQL DB: Create DB schema and populate dev data](#h---rds-postgresql-db-create-db-schema-and-populate-dev-data)
-  - [I - Deploy serverless web-app (ECS with Fargate)](#i---deploy-serverless-web-app-ecs-with-fargate)
-    - [Associated costs](#associated-costs-5)
+- [Terraform deployment](#terraform-deployment)
+  - [1 - Environments segmentation](#1---environments-segmentation)
+  - [2 - [Optional] If you have a new AWS account](#2---optional-if-you-have-a-new-aws-account)
+  - [3 - Module dependencies](#3---module-dependencies)
+  - [4 - Modules deployment](#4---modules-deployment)
+    - [A - Create S3 bucket and Dynamo DB for state lock](#a---create-s3-bucket-and-dynamo-db-for-state-lock)
+    - [B - Create IAM admin group and add admin user to it](#b---create-iam-admin-group-and-add-admin-user-to-it)
+    - [C - Create VPC](#c---create-vpc)
+      - [Associated costs](#associated-costs)
+    - [D - Create security groups (instance-level firewalls)](#d---create-security-groups-instance-level-firewalls)
+      - [Associated costs](#associated-costs-1)
+    - [E - Create Postgres DB](#e---create-postgres-db)
+      - [About AWS Secret Manager](#about-aws-secret-manager)
+      - [Associated costs](#associated-costs-2)
+    - [F - DNS (Route 53)](#f---dns-route-53)
+      - [Associated costs](#associated-costs-3)
+    - [G - Create a bastion host](#g---create-a-bastion-host)
+      - [Associated costs](#associated-costs-4)
+    - [H - RDS PostgreSQL DB: Create DB schema and populate dev data](#h---rds-postgresql-db-create-db-schema-and-populate-dev-data)
+    - [I - Application Load Balancer (ALB)](#i---application-load-balancer-alb)
+      - [Associated costs](#associated-costs-5)
+    - [J - Deploy serverless web-app (ECS with Fargate)](#j---deploy-serverless-web-app-ecs-with-fargate)
+      - [Associated costs](#associated-costs-6)
+    - [K - Amazon API Gateway](#k---amazon-api-gateway)
+      - [Associated costs](#associated-costs-7)
+  - [5 - Clean up](#5---clean-up)
 
 The best practice is to apply changes through CICD pipeline only. However for bootstraping your terraform backend and setting up your first IAM admin user you will need to apply changes outside a CICD Pipeline, this is what is shown in 1, 3.A & 3.B.
 
@@ -55,16 +61,6 @@ The below file structure will be created in s3:
 If you already have your remote backend setup you can skip this part and jump to [B - Create IAM admin group and add admin user to it](#b---create-iam-admin-group-and-add-admin-user-to-it)
 
 The first step will be to create a s3 bucket to store the remote backend and to create a Dynamo DB for storing the lock.
-
-Note that if anything goes wrong and you want to start from all over again you can install [cloud-nuke](https://github.com/gruntwork-io/cloud-nuke) and run this very destructive command:
-
-```bash
-# This will destroy all resources in the specified regions
-cloud-nuke aws --region=us-east-1 --region=global
-
-# cloud-nuke does not support IAM policies yet so you might also have to remove policies in the web-console
-# Github issue: https://github.com/gruntwork-io/cloud-nuke/issues/116#issuecomment-928002457
-```
 
 Configure your AWS credentials as environment variables.
 
@@ -121,6 +117,7 @@ You can adjust `_envcommon/*` depending on how DRY you want your terraform code 
 Run the below commands to:
 
 - create a financial-data-api-demo-state S3 bucket
+- create a financial-data-api-demo-alb-logs bucket
 - create a Dynamo DB
 
 Update your region in terraform/live/global/s3/terragrunt.hcl, by default it is `us-east-1`. For simplicity we use a single region in this tutorial
@@ -415,7 +412,44 @@ export PGPASSWORD=$(echo $secrets_json | jq -r ' .DB_PASSWORD')
 psql -h dev.custom_db_hostname.com -p 5432 -d market_data -c "SELECT * FROM market_data.stocks_ohlcv;"
 ```
 
-### I - Deploy serverless web-app (ECS with Fargate)
+### I - Application Load Balancer (ALB)
+
+Module path:
+
+- [live/dev/alb](live/dev/alb)
+
+Resources added:
+
+- Application Load Balancer
+
+You can check that your app is healthy in EC2 > Target groups:
+
+<img src="../docs/img/alb_target.png" width="500"/>
+
+Note that the ALB communicates with the ECS task using the private IP.
+
+> Pro tip: If the ALB keeps draining (restarting containers while preventing breaking open network connections) the ECS service it probably means the security group of the service isn't properly setup
+
+#### Associated costs
+
+This service is within the AWS free-tier with the below limits:
+
+- 750 Hours per month shared between Classic and Application load balancers
+- 15 Load Balancer Capacity Units (LCUs) for Application load balancers
+
+<img src="../docs/img/lcu.png" width="700"/>
+
+*(screenshot from [Elastic Load Balancing pricing](https://aws.amazon.com/elasticloadbalancing/pricing/))*
+
+Prices outside the AWS free-tier:
+
+|   ELB type  | $/ALB-hour | $/LCU-hour|
+|:-----------:|:----------:|:---------:|
+|     ALB     |   0.0225   |   0.008   |
+
+*(prices as of 2022-11-02)*
+
+### J - Deploy serverless web-app (ECS with Fargate)
 
 Module path:
 
@@ -463,3 +497,30 @@ Unfortunately ECS is not part of the AWS free tier. For ECS with Fargate launch 
 |  FARGATE SPOT  |  0.012144|  0.0013335  |
 
 *(prices as of 2022-10-30 cf [AWS Fargate Pricing](https://aws.amazon.com/fargate/pricing/))*
+
+### K - Amazon API Gateway
+
+Module path:
+
+- [live/dev/api-gateway](live/dev/api-gateway)
+
+Resources added:
+
+- ABCD
+
+Amazon API Gateway has many features but the features we are interested in here are the authentication feature where Amazon API Gateway leverages IAM and AWS Cognito (Not implementd in this demo) and the load balancing capabilities.
+
+
+#### Associated costs
+
+## 5 - Clean up
+
+Note that if anything goes wrong and you want to start from all over again you can install [cloud-nuke](https://github.com/gruntwork-io/cloud-nuke) and run this very destructive command:
+
+```bash
+# This will destroy all resources in the specified regions
+cloud-nuke aws --region=us-east-1 --region=global
+
+# cloud-nuke does not support IAM policies yet so you might also have to remove policies in the web-console
+# Github issue: https://github.com/gruntwork-io/cloud-nuke/issues/116#issuecomment-928002457
+```

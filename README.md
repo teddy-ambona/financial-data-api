@@ -1,4 +1,4 @@
-# financial-data-api &middot; ![ci](https://github.com/teddy-ambona/financial-data-api/actions/workflows/app_code_cicd.yml/badge.svg)
+# financial-data-api &middot; ![ci](https://github.com/teddy-ambona/financial-data-api/actions/workflows/app_code_cicd.yml/badge.svg); ![ci](https://github.com/teddy-ambona/financial-data-api/actions/workflows/infra_code_cicd.yml/badge.svg)
 
 - [1 - Architecture](#1---architecture)
   - [A - App CICD architecture](#a---app-cicd-architecture)
@@ -47,7 +47,7 @@ This repo is a demo project for dockerized flask applications (REST API). This s
 
 - Multi AZ serverless architecture:
   - VPC, Security-groups
-  - RDS DB, S3, Route53
+  - RDS DB, S3, Route53, ALB, API Gateway
   - IAM configuration (RBAC)
   - AWS Secrets Manager
   - ECS with Fargate (Blue/Green deployment)
@@ -258,7 +258,6 @@ In [./terraform](./terraform)
 ### A - App CICD workflow
 
 <img src="./docs/img/app_cicd.png" width="700"/>
-<br></br>
 
 - **yamllint:** Lints yaml files in the repo
 - **flake8:** Lints .py files in the repo
@@ -279,7 +278,6 @@ Running this locally means there will be a conflicting image tag when the Github
 ### B - Infra CICD workflow
 
 <img src="./docs/img/infra_cicd.png" width="700"/>
-<br></br>
 
 - **format:** Check if all Terraform configuration files are in a canonical format
 - **validate:** Verify whether a configuration is syntactically valid and internally consistent
@@ -293,7 +291,6 @@ Running this locally means there will be a conflicting image tag when the Github
 Example of infracost automated PR comment:
 
 <img src="./docs/img/infracost_comment.png" width="700"/>
-<br></br>
 
 One best practice is to always deploy from a single branch to avoid conflicting deployments.
 
@@ -515,6 +512,7 @@ A good architecture design can be facilitated by following these [AWS General de
 
 Taking a Flask app from development to production is a demanding but rewarding process. There are a couple of areas that I have omitted but would need to be addressed in a real production environment such as:
 
+- Use [AWS Private Links](https://aws.amazon.com/privatelink/) for private connectivity between AWS resources
 - Securing the endpoints with HTTPS ([AWS Certificate Manager](https://aws.amazon.com/certificate-manager/))
 - User management and authentication for the backend API ([AWS Cognito](https://aws.amazon.com/cognito/))
 - Adding monitoring/tracing tools (with Prometheus and Grafana for instance)

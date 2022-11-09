@@ -12,3 +12,8 @@ output "bastion_host_sg_id" {
   description = "The ID of the bastion host security group"
   value       = module.bastion_host_sg.security_group_id
 }
+
+output "alb_sg_id" {
+  description = "The ID of the ALB security group"
+  value       = module.alb_sg.security_group_id
+}
