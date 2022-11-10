@@ -1,3 +1,5 @@
+# This ALB is accessed only via VPC link so this tfsec issue can be ignored.
+#tfsec:ignore:aws-elb-http-not-used
 module "ecs_alb" {
   source  = "terraform-aws-modules/alb/aws"
   version = "~> 8.0"
@@ -48,6 +50,9 @@ module "ecs_alb" {
       target_group_index = 0
     }
   ]
+
+  # cf https://aquasecurity.github.io/tfsec/v1.28.0/checks/aws/elb/drop-invalid-headers/
+  drop_invalid_header_fields = true
 
   tags = {
     Terraform   = "true"
