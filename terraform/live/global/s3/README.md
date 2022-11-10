@@ -8,13 +8,14 @@
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | 4.30.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | 4.38.0 |
 
 ## Modules
 
 | Name | Source | Version |
 |------|--------|---------|
-| <a name="module_s3_bucket"></a> [s3\_bucket](#module\_s3\_bucket) | terraform-aws-modules/s3-bucket/aws | ~> 3.4 |
+| <a name="module_s3_bucket_alb_logs"></a> [s3\_bucket\_alb\_logs](#module\_s3\_bucket\_alb\_logs) | terraform-aws-modules/s3-bucket/aws | ~> 3.4 |
+| <a name="module_s3_bucket_tfstate"></a> [s3\_bucket\_tfstate](#module\_s3\_bucket\_tfstate) | terraform-aws-modules/s3-bucket/aws | ~> 3.4 |
 
 ## Resources
 

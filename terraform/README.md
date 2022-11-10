@@ -1,25 +1,31 @@
 # Terraform deployment
 
-- [1 - Environments segmentation](#1---environments-segmentation)
-- [2 - [Optional] If you have a new AWS account](#2---optional-if-you-have-a-new-aws-account)
-- [3 - Module dependencies](#3---module-dependencies)
-- [4 - Modules deployment](#4---modules-deployment)
-  - [A - Create S3 bucket and Dynamo DB for state lock](#a---create-s3-bucket-and-dynamo-db-for-state-lock)
-  - [B - Create IAM admin group and add admin user to it](#b---create-iam-admin-group-and-add-admin-user-to-it)
-  - [C - Create VPC](#c---create-vpc)
-    - [Associated costs](#associated-costs)
-  - [D - Create security groups (instance-level firewalls)](#d---create-security-groups-instance-level-firewalls)
-    - [Associated costs](#associated-costs-1)
-  - [E - Create Postgres DB](#e---create-postgres-db)
-    - [About AWS Secret Manager](#about-aws-secret-manager)
-    - [Associated costs](#associated-costs-2)
-  - [F - DNS (Route 53)](#f---dns-route-53)
-    - [Associated costs](#associated-costs-3)
-  - [G - Create a bastion host](#g---create-a-bastion-host)
-    - [Associated costs](#associated-costs-4)
-  - [H - RDS PostgreSQL DB: Create DB schema and populate dev data](#h---rds-postgresql-db-create-db-schema-and-populate-dev-data)
-  - [I - Deploy serverless web-app (ECS with Fargate)](#i---deploy-serverless-web-app-ecs-with-fargate)
-    - [Associated costs](#associated-costs-5)
+- [Terraform deployment](#terraform-deployment)
+  - [1 - Environments segmentation](#1---environments-segmentation)
+  - [2 - [Optional] If you have a new AWS account](#2---optional-if-you-have-a-new-aws-account)
+  - [3 - Module dependencies](#3---module-dependencies)
+  - [4 - Modules deployment](#4---modules-deployment)
+    - [A - Create S3 bucket and Dynamo DB for state lock](#a---create-s3-bucket-and-dynamo-db-for-state-lock)
+    - [B - Create IAM admin group and add admin user to it](#b---create-iam-admin-group-and-add-admin-user-to-it)
+    - [C - Create VPC](#c---create-vpc)
+      - [Associated costs](#associated-costs)
+    - [D - Create security groups (instance-level firewalls)](#d---create-security-groups-instance-level-firewalls)
+      - [Associated costs](#associated-costs-1)
+    - [E - Create Postgres DB](#e---create-postgres-db)
+      - [About AWS Secret Manager](#about-aws-secret-manager)
+      - [Associated costs](#associated-costs-2)
+    - [F - DNS (Route 53)](#f---dns-route-53)
+      - [Associated costs](#associated-costs-3)
+    - [G - Create a bastion host](#g---create-a-bastion-host)
+      - [Associated costs](#associated-costs-4)
+    - [H - RDS PostgreSQL DB: Create DB schema and populate dev data](#h---rds-postgresql-db-create-db-schema-and-populate-dev-data)
+    - [I - Application Load Balancer (ALB)](#i---application-load-balancer-alb)
+      - [Associated costs](#associated-costs-5)
+    - [J - Deploy serverless web-app (ECS with Fargate)](#j---deploy-serverless-web-app-ecs-with-fargate)
+      - [Associated costs](#associated-costs-6)
+    - [K - Amazon API Gateway](#k---amazon-api-gateway)
+      - [Associated costs](#associated-costs-7)
+  - [5 - Clean up](#5---clean-up)
 
 The best practice is to apply changes through CICD pipeline only. However for bootstraping your terraform backend and setting up your first IAM admin user you will need to apply changes outside a CICD Pipeline, this is what is shown in 1, 3.A & 3.B.
 
@@ -36,6 +42,10 @@ The below file structure will be created in s3:
 │   ├── s3
 │   │   └── .tfstate
 ├── <env>
+│   ├── alb
+│   │   └── .tfstate
+│   ├── api-gateway
+│   │   └── .tfstate
 │   ├── data-storage/rds
 │   │   └── .tfstate
 │   ├── ec2
@@ -55,16 +65,6 @@ The below file structure will be created in s3:
 If you already have your remote backend setup you can skip this part and jump to [B - Create IAM admin group and add admin user to it](#b---create-iam-admin-group-and-add-admin-user-to-it)
 
 The first step will be to create a s3 bucket to store the remote backend and to create a Dynamo DB for storing the lock.
-
-Note that if anything goes wrong and you want to start from all over again you can install [cloud-nuke](https://github.com/gruntwork-io/cloud-nuke) and run this very destructive command:
-
-```bash
-# This will destroy all resources in the specified regions
-cloud-nuke aws --region=us-east-1 --region=global
-
-# cloud-nuke does not support IAM policies yet so you might also have to remove policies in the web-console
-# Github issue: https://github.com/gruntwork-io/cloud-nuke/issues/116#issuecomment-928002457
-```
 
 Configure your AWS credentials as environment variables.
 
@@ -121,6 +121,7 @@ You can adjust `_envcommon/*` depending on how DRY you want your terraform code 
 Run the below commands to:
 
 - create a financial-data-api-demo-state S3 bucket
+- create a financial-data-api-demo-alb-logs bucket
 - create a Dynamo DB
 
 Update your region in terraform/live/global/s3/terragrunt.hcl, by default it is `us-east-1`. For simplicity we use a single region in this tutorial
@@ -415,7 +416,53 @@ export PGPASSWORD=$(echo $secrets_json | jq -r ' .DB_PASSWORD')
 psql -h dev.custom_db_hostname.com -p 5432 -d market_data -c "SELECT * FROM market_data.stocks_ohlcv;"
 ```
 
-### I - Deploy serverless web-app (ECS with Fargate)
+### I - Application Load Balancer (ALB)
+
+Module path:
+
+- [live/dev/alb](live/dev/alb)
+
+Resources added:
+
+- Application Load Balancer:
+  - Listens on port 80
+  - Store the access logs in `financial-data-api-demo-alb-logs`
+  - Health check the target group at `_healthcheck` endpoint
+
+The role of the ALB will be to balance requests amongst resources in the target group. The ALB is also calling the `_healthcheck` endpoint every 30 seconds and temporarily removes the resource from availability if it is judged not healthy.
+
+You can check that your app is healthy in EC2 > Target groups:
+
+<img src="../docs/img/alb_target.png" width="500"/>
+
+Note that the ALB communicates with the ECS task using the private IP.
+
+> Pro tip: If the ALB keeps draining (restarting containers while preventing breaking open network connections) the ECS service it probably means the security group of the service isn't properly setup
+
+To check the access logs of the ALB you can leverage S3 Select as shown in this picture:
+
+<img src="../docs/img/alb_logs.png" width="500"/>
+
+#### Associated costs
+
+This service is within the AWS free-tier with the below limits:
+
+- 750 Hours per month shared between Classic and Application load balancers
+- 15 Load Balancer Capacity Units (LCUs) for Application load balancers
+
+<img src="../docs/img/lcu.png" width="700"/>
+
+*(screenshot from [Elastic Load Balancing pricing](https://aws.amazon.com/elasticloadbalancing/pricing/))*
+
+Prices outside the AWS free-tier:
+
+|   ELB type  | $/ALB-hour | $/LCU-hour|
+|:-----------:|:----------:|:---------:|
+|     ALB     |   0.0225   |   0.008   |
+
+*(prices as of 2022-11-02)*
+
+### J - Deploy serverless web-app (ECS with Fargate)
 
 Module path:
 
@@ -441,17 +488,9 @@ Two IAM roles are needed here, the previously created `ecs_task_execution_role` 
 
 Note that in the task definition we use the `awsvpc` network mode (cf [best practices](https://docs.aws.amazon.com/AmazonECS/latest/bestpracticesguide/application.html)) and maps the container port 5000 (gunicorn server) with the host however we only want to expose the Nginx server that runs on port 80. That's when the security-group at service level becomes useful as it is only allowing incoming traffic from port 80.
 
-Using the Public IP of the ECS service (you can easily find it in the web-console as shown be below).
+We can verify that our 2 containers are up and running in the ECS web-console as shown be below.
 
-<img src="../docs/img/ecs_public_ip.png" width="300"/>
-
-We can now access our API from the web browser:
-
-<img src="../docs/img/api_request_example.png" width="700"/>
-
-> Note that not precising any specific port will default the request to port 80.
-
-I did not bother buying a public domain name for this demo but in practice we would want a HTTPS endpoint with a more readable name like "mysuperapi.com". Also you would need to assign an elastic IP to the ECS service or its public IP will change every time you redeploy the resource. If your API isn't meant to be public and you want to restrict access to certain users only [AWS Cognito](https://aws.amazon.com/cognito/) is doing a great job at user management and authentication for the backend API.
+<img src="../docs/img/ecs_running.png" width="500"/>
 
 #### Associated costs
 
@@ -463,3 +502,59 @@ Unfortunately ECS is not part of the AWS free tier. For ECS with Fargate launch 
 |  FARGATE SPOT  |  0.012144|  0.0013335  |
 
 *(prices as of 2022-10-30 cf [AWS Fargate Pricing](https://aws.amazon.com/fargate/pricing/))*
+
+### K - Amazon API Gateway
+
+Module path:
+
+- [live/dev/api-gateway](live/dev/api-gateway)
+
+Resources added:
+
+- API Gateway
+  - Route "financial-data-api/{proxy+}"
+  - ALB integration with VPC Link
+- Cloudwatch group `/aws/debug_apigateway`
+
+Amazon API Gateway has many features including authentication where Amazon API Gateway can leverage IAM and AWS Cognito (not implementd in this demo) for user management.
+
+API Gateway uses path-based routing to map a path to a back-end service. In this demo we access our back-end service with a request of the form `<api gateway uri>/<route>/<proxy>` where the route is "financial-data-api", this route is not forwarded to the backend service, only the proxy part of the URL is forwarded thanks to the path mapping declared in the integration.
+
+AWS PrivateLink is a technology that provides private connectivity between VPCs and services. This allows the Amazon API Gateway to communicate with our ALB without going through the internet.
+
+As explained in [Introducing Amazon API Gateway Private Endpoints](https://aws.amazon.com/blogs/compute/introducing-amazon-api-gateway-private-endpoints/)
+
+> "Here’s how this works.
+>
+> API Gateway private endpoints are made possible via AWS PrivateLink interface VPC endpoints. Interface endpoints work by creating elastic network interfaces in subnets that you define inside your VPC. Those network interfaces then provide access to services running in other VPCs, or to AWS services such as API Gateway. When configuring your interface endpoints, you specify which service traffic should go through them."
+
+We can now access our API from the web browser:
+
+in API Gateway > Details:
+<img src="../docs/img/api_gw.png" width="700"/>
+
+<img src="../docs/img/api_request_example.png" width="700"/>
+
+I did not bother buying a public domain name for this demo but in practice we would want a HTTPS endpoint with a more readable name like "mysuperapi.com".
+
+#### Associated costs
+
+|   Pricing per VPC endpoint per AZ ($/hour)  | Pricing per GB of Data Processed ($)* |
+|:-------------------------------------------:|:-------------------------------------:|
+|              0.01 (ie $80/year)             |                 0.01                  |
+
+**First 1 PB, check out [AWS PrivateLink pricing](https://aws.amazon.com/privatelink/pricing/) for more info*
+
+The [API Gateway free tier](https://aws.amazon.com/api-gateway/pricing/) includes one million HTTP API calls, one million REST API calls, one million messages, and 750,000 connection minutes per month for up to 12 months.
+
+## 5 - Clean up
+
+Note that if anything goes wrong and you want to start from all over again you can install [cloud-nuke](https://github.com/gruntwork-io/cloud-nuke) and run this very destructive command:
+
+```bash
+# This will destroy all resources in the specified regions
+cloud-nuke aws --region=us-east-1 --region=global
+
+# cloud-nuke does not support IAM policies yet so you might also have to remove policies in the web-console
+# Github issue: https://github.com/gruntwork-io/cloud-nuke/issues/116#issuecomment-928002457
+```
