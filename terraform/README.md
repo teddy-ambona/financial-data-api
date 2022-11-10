@@ -42,6 +42,10 @@ The below file structure will be created in s3:
 │   ├── s3
 │   │   └── .tfstate
 ├── <env>
+│   ├── alb
+│   │   └── .tfstate
+│   ├── api-gateway
+│   │   └── .tfstate
 │   ├── data-storage/rds
 │   │   └── .tfstate
 │   ├── ec2
@@ -425,7 +429,7 @@ Resources added:
   - Store the access logs in `financial-data-api-demo-alb-logs`
   - Health check the target group at `_healthcheck` endpoint
 
-The role of the ALB will be to balance requests amongst resources in the target group. The ALB is also calling the `_healthcheck` endpoint every 30 seconds and temporarily remove the resource from availability if it is judged not healthy.
+The role of the ALB will be to balance requests amongst resources in the target group. The ALB is also calling the `_healthcheck` endpoint every 30 seconds and temporarily removes the resource from availability if it is judged not healthy.
 
 You can check that your app is healthy in EC2 > Target groups:
 
@@ -520,11 +524,9 @@ AWS PrivateLink is a technology that provides private connectivity between VPCs 
 
 As explained in [Introducing Amazon API Gateway Private Endpoints](https://aws.amazon.com/blogs/compute/introducing-amazon-api-gateway-private-endpoints/)
 
-```
-"Here’s how this works.
-
-API Gateway private endpoints are made possible via AWS PrivateLink interface VPC endpoints. Interface endpoints work by creating elastic network interfaces in subnets that you define inside your VPC. Those network interfaces then provide access to services running in other VPCs, or to AWS services such as API Gateway. When configuring your interface endpoints, you specify which service traffic should go through them."
-```
+> "Here’s how this works.
+>
+> API Gateway private endpoints are made possible via AWS PrivateLink interface VPC endpoints. Interface endpoints work by creating elastic network interfaces in subnets that you define inside your VPC. Those network interfaces then provide access to services running in other VPCs, or to AWS services such as API Gateway. When configuring your interface endpoints, you specify which service traffic should go through them."
 
 We can now access our API from the web browser:
 
