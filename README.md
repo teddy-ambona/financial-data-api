@@ -47,7 +47,7 @@ This repo is a demo project for dockerized flask applications (REST API). This s
 
 - Multi AZ serverless architecture:
   - VPC, Security-groups
-  - RDS DB, S3, Route53, ALB, API Gateway
+  - RDS DB, S3, Route53, ALB, API Gateway, AWS Private link
   - IAM configuration (RBAC)
   - AWS Secrets Manager
   - ECS with Fargate (Blue/Green deployment)
@@ -513,7 +513,7 @@ A good architecture design can be facilitated by following these [AWS General de
 Taking a Flask app from development to production is a demanding but rewarding process. There are a couple of areas that I have omitted but would need to be addressed in a real production environment such as:
 
 - Use [AWS Private Links](https://aws.amazon.com/privatelink/) for private connectivity between AWS resources
-- Securing the endpoints with HTTPS ([AWS Certificate Manager](https://aws.amazon.com/certificate-manager/))
+- Automatically rotate the DB password with AWS Secrets Manager and AWS Lambda
 - User management and authentication for the backend API ([AWS Cognito](https://aws.amazon.com/cognito/))
 - Adding monitoring/tracing tools (with Prometheus and Grafana for instance)
 - Protection from common web exploits ([Web Application Firewall](https://aws.amazon.com/marketplace/solutions/security/web-application-firewall))

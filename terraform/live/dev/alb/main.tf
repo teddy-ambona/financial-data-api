@@ -6,8 +6,10 @@ module "ecs_alb" {
 
   load_balancer_type = "application"
 
+  # Make the ALB internally facing
+  internal        = true
   vpc_id          = data.terraform_remote_state.vpc.outputs.vpc_id
-  subnets         = data.terraform_remote_state.vpc.outputs.public_subnets_ids
+  subnets         = data.terraform_remote_state.vpc.outputs.private_subnets_ids
   security_groups = [data.terraform_remote_state.sg.outputs.alb_sg_id]
 
   access_logs = {

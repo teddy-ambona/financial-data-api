@@ -111,3 +111,29 @@ module "alb_sg" {
     Environment = local.environment
   }
 }
+
+# API Gateway security group (used for VPC link)
+#tfsec:ignore:aws-ec2-no-public-ingress-sgr
+module "api_gw_sg" {
+  source  = "terraform-aws-modules/security-group/aws"
+  version = "~>4.16"
+
+  name                = "${local.name_prefix}-api-gw-sg"
+  description         = "Security group for API Gateway"
+  vpc_id              = data.terraform_remote_state.vpc.outputs.vpc_id
+  ingress_cidr_blocks = ["0.0.0.0/0"]
+  ingress_rules       = ["http-80-tcp"]
+
+  computed_egress_with_source_security_group_id = [
+    {
+      rule                     = "http-80-tcp"
+      source_security_group_id = module.alb_sg.security_group_id
+    }
+  ]
+  number_of_computed_egress_with_source_security_group_id = 1
+
+  tags = {
+    Terraform   = "true"
+    Environment = local.environment
+  }
+}
