@@ -15,7 +15,7 @@ module "ecs_alb" {
   security_groups = [data.terraform_remote_state.sg.outputs.alb_sg_id]
 
   access_logs = {
-    bucket = "financial-data-api-demo-alb-logs"
+    bucket = "${local.environment}-financial-data-api-demo-alb-logs"
   }
 
   # Configure target group

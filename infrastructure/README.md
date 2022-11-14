@@ -1,46 +1,47 @@
-# Terraform deployment
+# Infrastructure deployment
 
-- [Terraform deployment](#terraform-deployment)
-  - [1 - Environments segmentation](#1---environments-segmentation)
-  - [2 - [Optional] If you have a new AWS account](#2---optional-if-you-have-a-new-aws-account)
-  - [3 - Module dependencies](#3---module-dependencies)
-  - [4 - Modules deployment](#4---modules-deployment)
-    - [A - Create S3 bucket and Dynamo DB for state lock](#a---create-s3-bucket-and-dynamo-db-for-state-lock)
-    - [B - Create IAM admin group and add admin user to it](#b---create-iam-admin-group-and-add-admin-user-to-it)
-    - [C - Create VPC](#c---create-vpc)
-      - [Associated costs](#associated-costs)
-    - [D - Create security groups (instance-level firewalls)](#d---create-security-groups-instance-level-firewalls)
-      - [Associated costs](#associated-costs-1)
-    - [E - Create Postgres DB](#e---create-postgres-db)
-      - [About AWS Secret Manager](#about-aws-secret-manager)
-      - [Associated costs](#associated-costs-2)
-    - [F - DNS (Route 53)](#f---dns-route-53)
-      - [Associated costs](#associated-costs-3)
-    - [G - Create a bastion host](#g---create-a-bastion-host)
-      - [Associated costs](#associated-costs-4)
-    - [H - RDS PostgreSQL DB: Create DB schema and populate dev data](#h---rds-postgresql-db-create-db-schema-and-populate-dev-data)
-    - [I - Application Load Balancer (ALB)](#i---application-load-balancer-alb)
-      - [Associated costs](#associated-costs-5)
-    - [J - Deploy serverless web-app (ECS with Fargate)](#j---deploy-serverless-web-app-ecs-with-fargate)
-      - [Associated costs](#associated-costs-6)
-    - [K - Amazon API Gateway](#k---amazon-api-gateway)
-      - [Associated costs](#associated-costs-7)
-  - [5 - Clean up](#5---clean-up)
+- [1 - Environments segmentation](#1---environments-segmentation)
+- [2 - Managing AWS Organizations](#2---managing-aws-organizations)
+  - [A - Create an AWS Organization](#a---create-an-aws-organization)
+  - [B - Generate template that describes all your Organization resources such as Accounts, OUs and SCPs](#b---generate-template-that-describes-all-your-organization-resources-such-as-accounts-ous-and-scps)
+  - [C - Switch AWS credentials](#c---switch-aws-credentials)
+- [3 - Module dependencies](#3---module-dependencies)
+- [4 - Modules deployment](#4---modules-deployment)
+  - [A - Create IAM admin group and add admin user to it](#a---create-iam-admin-group-and-add-admin-user-to-it)
+  - [B - Create VPC](#b---create-vpc)
+    - [Associated costs](#associated-costs)
+  - [C - Create security groups (instance-level firewalls)](#c---create-security-groups-instance-level-firewalls)
+    - [Associated costs](#associated-costs-1)
+  - [D - Create Postgres DB](#d---create-postgres-db)
+    - [About AWS Secret Manager](#about-aws-secret-manager)
+    - [Associated costs](#associated-costs-2)
+  - [E - DNS (Route 53)](#e---dns-route-53)
+    - [Associated costs](#associated-costs-3)
+  - [F - Create a bastion host](#f---create-a-bastion-host)
+    - [Associated costs](#associated-costs-4)
+  - [G - RDS PostgreSQL DB: Create DB schema and populate dev data](#g---rds-postgresql-db-create-db-schema-and-populate-dev-data)
+  - [H - Create S3 bucket for ALB Logs](#h---create-s3-bucket-for-alb-logs)
+  - [I - Application Load Balancer (ALB)](#i---application-load-balancer-alb)
+    - [Associated costs](#associated-costs-5)
+  - [J - Deploy serverless web-app (ECS with Fargate)](#j---deploy-serverless-web-app-ecs-with-fargate)
+    - [Associated costs](#associated-costs-6)
+  - [K - Amazon API Gateway](#k---amazon-api-gateway)
+    - [Associated costs](#associated-costs-7)
+- [5 - Clean up](#5---clean-up)
+  - [A - Using cloud-nuke](#a---using-cloud-nuke)
+  - [B - Deleting the AWS Account](#b---deleting-the-aws-account)
 
-The best practice is to apply changes through CICD pipeline only. However for bootstraping your terraform backend and setting up your first IAM admin user you will need to apply changes outside a CICD Pipeline, this is what is shown in 1, 3.A & 3.B.
+The best practice is to apply changes through CICD pipeline only. However for bootstraping your terraform backend and setting up your first IAM admin user you will need to apply changes outside a CICD Pipeline.
+
+For minimizing the costs in this demo I personally recommend using `us-east-1` region as [it is the cheapest region](https://www.concurrencylabs.com/blog/choose-your-aws-region-wisely/), that can help keeping the costs down if you are just playing with AWS services.
 
 ## 1 - Environments segmentation
 
-In this hands-on we segment environments(dev/prod) using separate `terraform.tfstate`. Each module has its own `terraform.state` file stored in s3, this is a best practice set to limit damages in case in errors. Also, the user who is running the terraform code does not need permission for the entire infrastructure but only for the resources he is trying to update.
+In this hands-on we leverage AWS Organization and segment environments(dev/stage/prod) using separate accounts. Also, each module has its own `terraform.state` file stored in s3, this is a best practice set to limit damages in case in errors. Also, the user who is running the terraform code does not need permission for the entire infrastructure but only for the resources he is trying to update.
 
 The below file structure will be created in s3:
 
 ```text
-├── global
-│   ├── iam
-│   │   └── .tfstate
-│   ├── s3
-│   │   └── .tfstate
 ├── <env>
 │   ├── alb
 │   │   └── .tfstate
@@ -52,7 +53,11 @@ The below file structure will be created in s3:
 │   │   └── .tfstate
 │   ├── ecs/financial-data-api
 │   │   └── .tfstate
+│   ├── iam
+│   │   └── .tfstate
 │   ├── route53
+│   │   └── .tfstate
+│   ├── s3
 │   │   └── .tfstate
 │   ├── security_groups
 │   │   └── .tfstate
@@ -60,31 +65,81 @@ The below file structure will be created in s3:
 │       └── .tfstate
 ```
 
-## 2 - [Optional] If you have a new AWS account
+## 2 - Managing AWS Organizations
 
-If you already have your remote backend setup you can skip this part and jump to [B - Create IAM admin group and add admin user to it](#b---create-iam-admin-group-and-add-admin-user-to-it)
+As previously mentionned we want to isolate each environment in a separate AWS account. Some advantages are ([cf article](https://dev.to/oconijn/off-to-a-great-start-with-aws-organizations-1i74)):
 
-The first step will be to create a s3 bucket to store the remote backend and to create a Dynamo DB for storing the lock.
+- **Limit blast radius:** because mistakes can happen
+- **Security Boundary:** simplifies implementing least privilege
+- **Data governance:** control access to GDPR governed data
+- **Scalability:** every account gets their own resource limits
+- **Cost monitoring:** without tagging :smiley:
 
-Configure your AWS credentials as environment variables.
+In this demo we will be splitting the development and production accounts in different organizational units using [AWS Organization Formation](https://github.com/org-formation/org-formation-cli) which is an Infrastructure as Code (IaC) tool for AWS Organizations.
 
-> Important: You can use root user credentials for the steps 2 and 3 then you should delete the keys of the root user to comply with the [Security best practices in IAM](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html).
+Here is the target setup:
 
-In `~/.aws/credentials` (or `%UserProfile%\.aws\credentials` on Windows):
+<img src="../docs/diagrams/aws_organizations_diagram.png" width="700"/>
+
+This is a simplified AWS organization for the sake of the demo but in practice you might want to have a compliance account with a S3 bucket where you centralize the CloudTrail logs for all account for instance. You could also have many dev and prod accounts (1 per application or per team).
+
+Note that AWS Organizations is free, you can create many accounts and will be charged only for the AWS resources that you use. Also don't forget to read the AWS article about [Establishing your best practice AWS environment](https://aws.amazon.com/organizations/getting-started/best-practices/#:~:text=While%20you%20may%20begin%20your,grow%20in%20size%20and%20complexity)
+
+### A - Create an AWS Organization
+
+1/ Open the [AWS Organizations console](https://console.aws.amazon.com/organizations/).
+
+2/ Choose Create organization.
+
+You should end up with this:
+
+<img src="../docs/img/aws_organization.png" width="700"/>
+
+### B - Generate template that describes all your Organization resources such as Accounts, OUs and SCPs
+
+Run this command to generate the template:
 
 ```bash
-[default]
-aws_access_key_id=<your access key id>
-aws_secret_access_key=<your secret access key>
+org-formation init organization.yml  --region us-east-1 [--profile org-master-account]
 ```
 
-I personally recommend using `us-east-1` region as [it is the cheapest region](https://www.concurrencylabs.com/blog/choose-your-aws-region-wisely/), that can help keeping the costs down if you are just playing with AWS services.
+the `organization.yml` file is now generated:
+
+<img src="../docs/img/organization_template.png" width="700"/>
+
+That is your starting point, I've also included an example of [organization.yml](.organization.yml) in this repo.
+
+This example file defines the following OUs, accounts and Service control policies (SCPs):
+
+- Create 1 development OU
+- Create 1 production OU
+- Create 1 development account
+- Create 1 production account
+- Enforce using us-east-1 region across OUs
+- Deny changing the IAM role used for organization access
+- Enforce strong password policy
+- Create an S3 bucket <env>-financial-data-api-demo-state in each account (to store the .tfstate files)
+- Create a dynamo DB table in each account (to store the state lock of terraform)
+
+As detailed above each account comes with an s3 bucket and dynamo DB for bootstrapping terraform workload.
+This avoids running into the chicken and egg issue where terraform backend needs to be stored on the S3 bucket which otherwise should itself be created via terraform. The solution used to imply starting with a local terraform state and migrating the state to S3 after the resource is created, which makes the process quite manual.
+
+You can run the below command to update your AWS Organization and perform tasks:
+
+```bash
+cd infrastructure/aws-organizations
+org-formation perform-tasks organization-tasks.yml
+```
+
+### C - Switch AWS credentials
+
+Now that you have created your dev and prod accounts don't forget to update the access keys in your `~/.aws/credentials` (or `%UserProfile%\.aws\credentials` on Windows). Until you create the admin user in [4.B](#b---create-iam-admin-group-and-add-admin-user-to-it) you can temporarily use the root access keys.
 
 ## 3 - Module dependencies
 
 In the `terragrunt.hcl` of each module, we declare the dependencies on other modules so that terragrunt knows in what order to create or destroy the resources when running `terragrunt run-all apply` or `terragrunt run-all destroy`. If any of the modules fail to deploy, then Terragrunt will not attempt to deploy the modules that depend on them(cf [documentation](https://terragrunt.gruntwork.io/docs/features/execute-terraform-commands-on-multiple-modules-at-once/#dependencies-between-modules)).
 
-For example in [live/\_envcommon/financial-data-api.hcl](./live/_envcommon/financial-data-api.hcl):
+For example in [terraform/live/\_envcommon/financial-data-api.hcl](./terraform/live/_envcommon/financial-data-api.hcl):
 
 ```hcl
 dependencies {
@@ -99,7 +154,7 @@ cd live/dev
 terragrunt graph-dependencies | dot -Tsvg > graph.svg
 ```
 
-<img src="../docs/img/module_dependencies.png" width="250"/>
+<img src="../docs/diagrams/module_dependencies.png" width="250"/>
 
 Terragrunt is a great tool for keeping your code DRY but you may be wondering how does that work in practice. Here is the schematic view of how terragrunt will propagate variables through our file structure:
 
@@ -116,93 +171,13 @@ You can adjust `_envcommon/*` depending on how DRY you want your terraform code 
 
 ## 4 - Modules deployment
 
-### A - Create S3 bucket and Dynamo DB for state lock
+**Important:** You can use root user credentials to start the step A and then you should delete the keys of the root user to comply with the [Security best practices in IAM](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html).
 
-Run the below commands to:
-
-- create a financial-data-api-demo-state S3 bucket
-- create a financial-data-api-demo-alb-logs bucket
-- create a Dynamo DB
-
-Update your region in terraform/live/global/s3/terragrunt.hcl, by default it is `us-east-1`. For simplicity we use a single region in this tutorial
-
-```hcl
-locals {
-  aws_region = "us-east-1"
-}
-```
-
-```bash
-cd terraform/live/global/s3
-
-# We can omit "terragrunt init" here as terragrunt has an Auto-Init feature.
-
-terragrunt plan
-terragrunt apply
-```
-
-Now we will setup remote terraform backend by appending this to the end of `terraform/live/global/s3/terragrunt.hcl`:
-
-```hcl
-remote_state {
-  backend = "s3"
-  generate = {
-    path      = "terragrunt_backend.tf"
-    if_exists = "overwrite_terragrunt"
-  }
-  config = {
-    bucket         = "financial-data-api-demo-state"
-    key            = "global/s3/terraform.tfstate"
-    region         = local.env_vars.locals.aws_region
-    dynamodb_table = "financial-data-api-demo-locks"
-    encrypt        = true
-  }
-}
-```
-
-You can now run
-
-```bash
-$ terragrunt init
-
-WARN[0001] The remote state S3 bucket financial-data-api-demo-state needs to be updated: 
-WARN[0001]   - Bucket Root Access
-WARN[0001]   - Bucket Enforced TLS
-Remote state S3 bucket financial-data-api-demo-state is out of date. Would you like Terragrunt to update it? (y/n)
-```
-
-Type "y", now you should see:
-
-```bash
-Initializing the backend...
-Acquiring state lock. This may take a few moments...
-Do you want to copy existing state to the new backend?
-  Pre-existing state was found while migrating the previous "local" backend to the
-  newly configured "s3" backend. No existing state was found in the newly
-  configured "s3" backend. Do you want to copy this state to the new "s3"
-  backend? Enter "yes" to copy and "no" to start with an empty state.
-
-  Enter a value:
-```
-
-Type "yes"
-
-You should now see
-
-```bash
-Releasing state lock. This may take a few moments...
-
-Successfully configured the backend "s3"! Terraform will automatically
-use this backend unless the backend configuration changes.
-```
-
-> Pro tip: You can run apply with the -lock-timeout=<TIME> parameter to tell Terraform to wait up to TIME for a lock to be released (e.g., -lock-timeout=10m will wait for 10 minutes), this is particularly useful if other developers are trying to update the infrastructure at the same time.
-
-### B - Create IAM admin group and add admin user to it
+### A - Create IAM admin group and add admin user to it
 
 Because nobody wants to log in to the AWS web console, go to IAM, and click some buttons in the UI to manage IAM users/groups/roles (unless you are learning and it's the first time you use AWS) we will define IAM resources in this module.
 
-In this section, we assume that the tfstate can be stored in the bucket `financial-data-api-demo-state` under the key `global/iam/terraform.tfstate`
+In this section, we assume that the tfstate can be stored in the bucket `dev-financial-data-api-demo-state` under the key `dev/iam/terraform.tfstate`
 
 This module performs the following operations:
 
@@ -215,11 +190,13 @@ This module performs the following operations:
 - Create app role (to be assumed by the ECS task and the EC2 bastion host)
 
 ```bash
-cd terraform/live/global/iam
+cd terraform/live/dev/iam
 
 terragrunt plan
 terragrunt apply
 ```
+
+> Pro tip: You can run apply with the -lock-timeout=<TIME> parameter to tell Terraform to wait up to TIME for a lock to be released (e.g., -lock-timeout=10m will wait for 10 minutes), this is particularly useful if other developers are trying to update the infrastructure at the same time.
 
 Note that Terraform stores the secrets in plain text in the `.tfstate` file, that is why is it not recommended to store `.tfstate` in Github but rather in S3 or other shared storage.
 
@@ -260,7 +237,7 @@ aws_session_token=<your session token>
 >
 > Pro tip #2: If you have already created a remote state and still see this message `Remote state S3 bucket financial-data-api-demo-state does not exist or you don't have permissions to access it. Would you like Terragrunt to create it? (y/n)` this could be because you need to refresh your sts token.
 
-### C - Create VPC
+### B - Create VPC
 
 If you are new to this, a good explanation of what VPCs are is detailed in [AWS VPC Core Concepts in an Analogy and Guide](https://start.jcolemorrison.com/aws-vpc-core-concepts-analogy-guide/).
 
@@ -268,7 +245,7 @@ It's [best practice](https://www.hyperglance.com/blog/aws-vpc-security-best-prac
 
 Module path:
 
-- [live/dev/vpc](live/dev/vpc)
+- [terraform/live/dev/vpc](terraform/live/dev/vpc)
 
 Resources added:
 
@@ -282,11 +259,11 @@ Resources added:
 
 Free. However beware of the [traffic cost](https://www.nops.io/aws-data-transfer-cost-operation/).
 
-### D - Create security groups (instance-level firewalls)
+### C - Create security groups (instance-level firewalls)
 
 Module path:
 
-- [live/dev/security-groups](live/dev/security-groups)
+- [terraform/live/dev/security-groups](terraform/live/dev/security-groups)
 
 Resources added:
 
@@ -298,11 +275,11 @@ Resources added:
 
 Free
 
-### E - Create Postgres DB
+### D - Create Postgres DB
 
 Module path:
 
-- [live/dev/data-storage/rds](live/dev/data-storage/rds)
+- [terraform/live/dev/data-storage/rds](terraform/live/dev/data-storage/rds)
 
 Resources added:
 
@@ -325,11 +302,11 @@ This comes at the cost that our application is not cloud-agnostic anymore since 
 
 This db.t3.micro with 20 GB of General Purpose (SSD) DB storage instance sits into the AWS free-tier so it is free (cf [Amazon RDS Pricing](https://aws.amazon.com/rds/pricing/))
 
-### F - DNS (Route 53)
+### E - DNS (Route 53)
 
 Module path:
 
-- [live/dev/route53](live/dev/route53)
+- [terraform/live/dev/route53](terraform/live/dev/route53)
 
 Resources added:
 
@@ -348,11 +325,11 @@ DNS queries are free when domain or subdomain name the record type (A) in the qu
 
 Also check out the great explanation on Route53 pricing in [this article](https://www.stormit.cloud/blog/amazon-route-53-pricing/)
 
-### G - Create a bastion host
+### F - Create a bastion host
 
 Module path:
 
-- [live/dev/ec2](live/dev/ec2)
+- [terraform/live/dev/ec2](terraform/live/dev/ec2)
 
 Resources added:
 
@@ -375,7 +352,7 @@ This t2.micro instance sits into the AWS free-tier so it is free. Here is the pr
 
 *(prices as of 2022-10-30 cf [Amazon EC2 T2 Instances](https://aws.amazon.com/ec2/instance-types/t2/))*
 
-### H - RDS PostgreSQL DB: Create DB schema and populate dev data
+### G - RDS PostgreSQL DB: Create DB schema and populate dev data
 
 We have now instantiated a RDS DB on the private subnet which means connections from/to the internet are not enabled. Even though it would be practical we do not whitelist public IPs as this is bad practice, RDS should remain on a private subnet.
 
@@ -416,11 +393,21 @@ export PGPASSWORD=$(echo $secrets_json | jq -r ' .DB_PASSWORD')
 psql -h dev.custom_db_hostname.com -p 5432 -d market_data -c "SELECT * FROM market_data.stocks_ohlcv;"
 ```
 
+### H - Create S3 bucket for ALB Logs
+
+Module path:
+
+- [terraform/live/dev/s3](terraform/live/dev/s3)
+
+Resources added:
+
+- `<env>-financial-data-api-demo-alb-logs` bucket
+
 ### I - Application Load Balancer (ALB)
 
 Module path:
 
-- [live/dev/alb](live/dev/alb)
+- [terraform/live/dev/alb](terraform/live/dev/alb)
 
 Resources added:
 
@@ -466,7 +453,7 @@ Prices outside the AWS free-tier:
 
 Module path:
 
-- [live/dev/ecs/financial-data-api](live/dev/ecs/financial-data-api)
+- [terraform/live/dev/ecs/financial-data-api](terraform/live/dev/ecs/financial-data-api)
 
 Resources added:
 
@@ -480,7 +467,7 @@ Elastic Container Services allows you to deploy containerized tasks on a cluster
 
 ECS does not run or execute your container (AWS Fargate will) but only provides the control plane to manage tasks. Below is the general architecture of our API in ECS with AWS Fargate.
 
-<img src="../docs/img/ecs_fargate.png" width="500"/>
+<img src="../docs/diagrams/ecs_fargate.png" width="500"/>
 
 *(image drawn from [draw.io](https://www.draw.io/?splash=0&libs=aws4))*
 
@@ -507,7 +494,7 @@ Unfortunately ECS is not part of the AWS free tier. For ECS with Fargate launch 
 
 Module path:
 
-- [live/dev/api-gateway](live/dev/api-gateway)
+- [terraform/live/dev/api-gateway](terraform/live/dev/api-gateway)
 
 Resources added:
 
@@ -549,6 +536,10 @@ The [API Gateway free tier](https://aws.amazon.com/api-gateway/pricing/) include
 
 ## 5 - Clean up
 
+There are 2 ways of removing every resources created in this demo:
+
+### A - Using cloud-nuke
+
 Note that if anything goes wrong and you want to start from all over again you can install [cloud-nuke](https://github.com/gruntwork-io/cloud-nuke) and run this very destructive command:
 
 ```bash
@@ -558,3 +549,8 @@ cloud-nuke aws --region=us-east-1 --region=global
 # cloud-nuke does not support IAM policies yet so you might also have to remove policies in the web-console
 # Github issue: https://github.com/gruntwork-io/cloud-nuke/issues/116#issuecomment-928002457
 ```
+
+### B - Deleting the AWS Account
+
+The best way to ensure you won't be billed for some services that you have forgotten is to delete the AWS account.
+AWS does not provide an API for deleting accounts (probably for good reasons) so you will have to do it in the console.

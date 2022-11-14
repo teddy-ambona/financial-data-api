@@ -1,9 +1,9 @@
 .PHONY: tflint tfsec infracost terraform-docs
 
-DRUN = docker run --rm -v ${PWD}:/terraform
+DRUN = docker run --rm -v ${PWD}/terraform:/terraform
 
 tflint:
-	cd live
+	cd terraform/live
 
 	# Install AWS plugin
 	tflint --init
@@ -24,4 +24,4 @@ infracost:
 # Example:
 # make terraform-docs DIR_PATH=live/dev/ec2
 terraform-docs:
-	$(DRUN) -w /terraform cytopia/terraform-docs terraform-docs md ${DIR_PATH} > ${DIR_PATH}/README.md
+	$(DRUN) -w /terraform cytopia/terraform-docs terraform-docs md ${DIR_PATH} > terraform/${DIR_PATH}/README.md

@@ -1,5 +1,5 @@
 dependencies {
-  paths = ["../vpc", "../security-groups"]
+  paths = ["../iam", "../vpc", "../security-groups"]
 }
 
 locals {

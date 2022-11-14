@@ -14,7 +14,7 @@ jobs:
       image: alpine/terragrunt:1.2.7
     defaults:
       run:
-        working-directory: terraform/live
+        working-directory: infrastructure/terraform/live
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -38,7 +38,7 @@ jobs:
       image: alpine/terragrunt:1.2.7
     defaults:
       run:
-        working-directory: terraform/live
+        working-directory: infrastructure/terraform/live
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -110,7 +110,7 @@ jobs:
       # nektos/act does not support caching so we init the AWS plugin in the same step
       # cf https://github.com/nektos/act/issues/285
       run: |
-        cd terraform/live
+        cd infrastructure/terraform/live
 
         # Install AWS plugin
         tflint --init
@@ -144,6 +144,7 @@ jobs:
     needs: [tfsec]
     name: Infracost
     runs-on: ubuntu-latest
+    if: github.ref != 'refs/heads/main'
     permissions:
       contents: read
       pull-requests: write
@@ -168,7 +169,7 @@ jobs:
       # Generate Infracost JSON file
       - name: Generate Infracost cost estimate
         run: |
-          infracost breakdown --config-file=terraform/live/infracost.yml \
+          infracost breakdown --config-file=infrastructure/terraform/live/infracost.yml \
                               --format=json \
                               --out-file=/tmp/infracost.json
 
