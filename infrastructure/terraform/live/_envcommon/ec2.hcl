@@ -46,7 +46,7 @@ data "terraform_remote_state" "iam" {
   config = {
     bucket = "${local.env_vars.locals.remote_state_bucket}"
     region = "${local.env_vars.locals.aws_region}"
-    key = "global/iam/terraform.tfstate"
+    key = "${local.env_vars.locals.environment}/iam/terraform.tfstate"
   }
 }
 

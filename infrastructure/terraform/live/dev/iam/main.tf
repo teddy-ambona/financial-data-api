@@ -56,7 +56,7 @@ module "iam_group_with_policies" {
 
   tags = {
     Terraform   = "true"
-    Environment = "global"
+    Environment = local.environment
   }
 
 }

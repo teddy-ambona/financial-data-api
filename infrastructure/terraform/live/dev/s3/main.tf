@@ -7,7 +7,7 @@ resource "aws_kms_key" "mykey" {
 
   tags = {
     Terraform   = "true"
-    Environment = "global"
+    Environment = local.environment
   }
 
 }
@@ -67,7 +67,7 @@ module "s3_bucket_alb_logs" {
 
   tags = {
     Terraform   = "true"
-    Environment = "global"
+    Environment = local.environment
   }
 
 }
