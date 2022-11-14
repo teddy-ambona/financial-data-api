@@ -14,6 +14,12 @@ resource "aws_kms_key" "mykey" {
 
 # Create S3 bucket for storing the ALB logs
 #tfsec:ignore:aws-s3-encryption-customer-key
+# The below warnings are false positive from tfsec
+# cf issue https://github.com/terraform-aws-modules/terraform-aws-s3-bucket/pull/161
+#tfsec:ignore:aws-s3-block-public-acls
+#tfsec:ignore:aws-s3-block-public-policy
+#tfsec:ignore:aws-s3-ignore-public-acls
+#tfsec:ignore:aws-s3-no-public-buckets
 module "s3_bucket_alb_logs" {
   source  = "terraform-aws-modules/s3-bucket/aws"
   version = "~> 3.4"
