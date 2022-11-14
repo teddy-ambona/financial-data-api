@@ -96,8 +96,8 @@ resource "aws_ecs_service" "financial_data_api_service" {
 
   network_configuration {
     security_groups  = [data.terraform_remote_state.sg.outputs.web_server_sg_id]
-    subnets          = data.terraform_remote_state.vpc.outputs.public_subnets_ids
-    assign_public_ip = true
+    subnets          = data.terraform_remote_state.vpc.outputs.private_subnets_ids
+    assign_public_ip = false
   }
 
   tags = {

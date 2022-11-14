@@ -14,10 +14,10 @@ module "vpc" {
 
   # The NAT Gateway enables resources in the private subnet to communicate
   # with the internet (for installing DB software for instance, but RDS doesn't need it).
-  # This is a very expensive feature so we turn it off.
+  # This is an expensive feature
   # cf https://medium.com/@balint_sera/nat-gateway-is-expensive-and-you-probably-dont-need-it-to-run-24-hours-a-day-17c9a5150f45
-  # If you do need it you can set "single_nat_gateway = true" and "reuse_nat_ips = true" to keep number Elastic IP minimal and avoid incurring extra charges.
-  enable_nat_gateway = false
+  enable_nat_gateway = true
+  single_nat_gateway = true
 
   # Set DNS parameters to "true" to enable Route 53 private hosted zone (dev.custom_db_hostname.com)
   enable_dns_hostnames = true

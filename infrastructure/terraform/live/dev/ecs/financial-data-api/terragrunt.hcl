@@ -29,13 +29,13 @@ include "envcommon" {
 # inputs get merged with the common inputs from the root and the envcommon terragrunt.hcl
 inputs = {
   # App
-  app_image_tag        = "1.2.0"
+  app_image_tag        = "1.4.0"
   app_image_repository = "docker.io/tambona29/financial-data-api"
   app_container_cpu    = 256 # (0.25 vCPU)
   app_container_memory = 512 # (0.5 GB)
 
   # Nginx
-  nginx_image_tag        = "1.1.0"
+  nginx_image_tag        = "1.3.0"
   nginx_image_repository = "docker.io/tambona29/nginx-demo"
   nginx_container_cpu    = 256 # (0.25 vCPU)
   nginx_container_memory = 512 # (0.5 GBs)

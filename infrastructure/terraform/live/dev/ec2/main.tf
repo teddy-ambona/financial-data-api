@@ -35,7 +35,8 @@ resource "aws_instance" "bastion_host" {
   # Activate session tokens for Instance Metadata Service
   # cf https://aquasecurity.github.io/tfsec/v1.28.0/checks/aws/ec2/enforce-http-token-imds/
   metadata_options {
-    http_tokens = "required"
+    http_endpoint = "enabled"
+    http_tokens   = "required"
   }
 
   # Security group that limits inbound traffic to SSH instance connect only

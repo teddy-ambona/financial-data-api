@@ -118,10 +118,10 @@ This example file defines the following OUs, accounts and Service control polici
 - Enforce using us-east-1 region across OUs
 - Deny changing the IAM role used for organization access
 - Enforce strong password policy
-- Create an S3 bucket <env>-financial-data-api-demo-state in each account (to store the .tfstate files)
+- Create an S3 bucket `<env>-financial-data-api-demo-state` in each account (to store the .tfstate files)
 - Create a dynamo DB table in each account (to store the state lock of terraform)
 
-As detailed above each account comes with an s3 bucket and dynamo DB for bootstrapping terraform workload.
+As detailed above each account comes with an s3 bucket and dynamo DB for bootstrapping terraform workload. You will need to change the bucket name so that it is unique across all AWS accounts(so you can't reuse `<env>-financial-data-api-demo-state` as I am already using this pattern and your config will crash)
 This avoids running into the chicken and egg issue where terraform backend needs to be stored on the S3 bucket which otherwise should itself be created via terraform. The solution used to imply starting with a local terraform state and migrating the state to S3 after the resource is created, which makes the process quite manual.
 
 You can run the below command to update your AWS Organization and perform tasks:
@@ -233,7 +233,7 @@ aws_secret_access_key=<your secret access key>
 aws_session_token=<your session token>
 ```
 
-> Pro tip #1: I personally use the [aws-mfa](https://github.com/broamski/aws-mfa) tool that automates the painful and clunky process of obtaining temporary credentials from the AWS Security Token Service and updating your AWS Credentials.
+> Pro tip #1: I personally use the [aws-mfa](https://github.com/broamski/aws-mfa) tool that automates the painful and clunky process of obtaining temporary credentials from the AWS Security Token Service and updating your AWS Credentials. Note that if you reset your MFA device you will need to explicitly specify `--device <your device arn>` the first time you use it.
 >
 > Pro tip #2: If you have already created a remote state and still see this message `Remote state S3 bucket financial-data-api-demo-state does not exist or you don't have permissions to access it. Would you like Terragrunt to create it? (y/n)` this could be because you need to refresh your sts token.
 
@@ -418,7 +418,7 @@ Resources added:
 
 The role of the ALB will be to balance requests amongst resources in the target group. The ALB is also calling the `_healthcheck` endpoint every 30 seconds and temporarily removes the resource from availability if it is judged not healthy.
 
-You can check that your app is healthy in EC2 > Target groups:
+You can check that your app is healthy in EC2 > Target groups (after having deployed the ECS service):
 
 <img src="../docs/img/alb_target.png" width="500"/>
 

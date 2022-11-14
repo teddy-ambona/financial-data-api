@@ -3,3 +3,6 @@ version: 0.1
 projects:
 
   - path: terraform/live/dev
+
+  # Placeholder, skipped in demo
+  # - path: terraform/live/prod

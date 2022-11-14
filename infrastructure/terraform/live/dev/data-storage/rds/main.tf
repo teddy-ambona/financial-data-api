@@ -42,10 +42,11 @@ module "postgres_db" {
   # The allocated storage in gigabytes, AWS requires a minimum of 20Gb
   allocated_storage = var.allocated_storage
 
-  db_name  = "market_data"
-  username = var.db_username
-  password = random_password.db_password.result
-  port     = "5432"
+  db_name                = "market_data"
+  username               = var.db_username
+  create_random_password = false
+  password               = random_password.db_password.result
+  port                   = "5432"
 
   iam_database_authentication_enabled = true
 

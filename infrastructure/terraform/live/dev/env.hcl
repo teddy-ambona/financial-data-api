@@ -6,6 +6,6 @@ locals {
   aws_region          = "us-east-1"
   aws_account_id      = "<YOUR_AWS_ACCOUNT_ID>"
   environment         = "dev"
-  remote_state_bucket = "financial-data-api-demo-state"
+  remote_state_bucket = "dev-financial-data-api-demo-state"
   application         = "api-demo"
 }
