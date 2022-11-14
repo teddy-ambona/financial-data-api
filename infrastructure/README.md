@@ -133,7 +133,7 @@ org-formation perform-tasks organization-tasks.yml
 
 ### C - Switch AWS credentials
 
-Now that you have created your dev and prod accounts don't forget to update the access keys in your `~/.aws/credentials` (or `%UserProfile%\.aws\credentials` on Windows). Until you create the admin user in [4.B](#b---create-iam-admin-group-and-add-admin-user-to-it) you can temporarily use the root access keys.
+Now that you have created your dev and prod accounts don't forget to update the access keys in your `~/.aws/credentials` (or `%UserProfile%\.aws\credentials` on Windows). Until you create the admin user in [4.A](#a---create-iam-admin-group-and-add-admin-user-to-it) you can temporarily use the root access keys.
 
 ## 3 - Module dependencies
 
@@ -154,7 +154,7 @@ cd live/dev
 terragrunt graph-dependencies | dot -Tsvg > graph.svg
 ```
 
-<img src="../docs/diagrams/module_dependencies.png" width="250"/>
+<img src="../docs/diagrams/module_dependencies.png" width="700"/>
 
 Terragrunt is a great tool for keeping your code DRY but you may be wondering how does that work in practice. Here is the schematic view of how terragrunt will propagate variables through our file structure:
 

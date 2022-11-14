@@ -521,7 +521,7 @@ A good architecture design can be facilitated by following these [AWS General de
 
 The DevOps checklist:
 
-<img src="./docs/img/production_grade_infrastructure_gruntwork.png" width="700"/>
+<img src="./docs/img/production_grade_infrastructure_gruntwork.png" width="800"/>
 
 ## 10 - Improvements
 
