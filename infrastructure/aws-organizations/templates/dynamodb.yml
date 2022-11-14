@@ -1,0 +1,39 @@
+
+AWSTemplateFormatVersion: '2010-09-09-OC'
+
+# Include file that contains Organization Section.
+# The Organization Section describes Accounts, Organizational Units, etc.
+Organization: !Include ../organization.yml
+
+# Section that contains a named list of Bindings.
+# Bindings determine what resources are deployed where
+# These bindings can be !Ref'd from the Resources in the resource section
+OrganizationBindings:
+
+  # Binding for: DynamoDB
+  DynamoDBBinding:
+    Region: us-east-1
+    Account: "*"
+
+Resources:
+
+  # Create Dynamo DB that will be used to store the terraform LockID
+  DynamoDB:
+    Type: AWS::DynamoDB::Table
+    OrganizationBinding: !Ref DynamoDBBinding
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: true
+      AttributeDefinitions:
+        - 
+          AttributeName: "LockID"
+          AttributeType: "S"
+      KeySchema:
+        - 
+          AttributeName: "LockID"
+          KeyType: "HASH"
+      TableName: financial-data-api-demo-locks
+      Tags:
+        - Key: org-formation
+          Value: true

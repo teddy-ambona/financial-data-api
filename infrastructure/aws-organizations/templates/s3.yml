@@ -1,0 +1,48 @@
+
+AWSTemplateFormatVersion: '2010-09-09-OC'
+
+# Include file that contains Organization Section.
+# The Organization Section describes Accounts, Organizational Units, etc.
+Organization: !Include ../organization.yml
+
+# Section that contains a named list of Bindings.
+# Bindings determine what resources are deployed where
+# These bindings can be !Ref'd from the Resources in the resource section
+OrganizationBindings:
+
+  # Binding for: OriginBucket
+  OriginBucketBinding:
+    Region: us-east-1
+    Account: "*"
+
+Parameters:
+
+  environment:
+    Type: String
+    Default: !GetAtt AWSAccount.Tags.environment
+
+Resources:
+
+  # Create S3 Bucket that will be used to store terraform state files
+  OriginBucket:
+    Type: AWS::S3::Bucket
+    OrganizationBinding: !Ref OriginBucketBinding
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub '${environment}-financial-data-api-demo-state'
+      # Enable versioning so we can see the full revision history of our state files
+      VersioningConfiguration:
+        Status: Enabled
+      AccessControl: Private
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      Tags:
+        - Key: org-formation
+          Value: true

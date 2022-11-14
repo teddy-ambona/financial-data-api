@@ -1,6 +1,0 @@
-version: 0.1
-
-projects:
-  - path: terraform/live/global
-
-  - path: terraform/live/dev

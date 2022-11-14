@@ -1,0 +1,111 @@
+AWSTemplateFormatVersion: '2010-09-09-OC'
+Description: default template generated for organization with master account 123456789
+
+Organization:
+  ManagementAccount:
+    Type: OC::ORG::MasterAccount
+    Properties:
+      Alias: financial-data-api-demo-master
+      AccountName: master
+      AccountId: '123456789'
+      RootEmail: john.doe@gmail.com
+
+  OrganizationRoot:
+    Type: OC::ORG::OrganizationRoot
+    Properties:
+      ServiceControlPolicies:
+        - !Ref DenyChangeOfOrgRoleSCP
+        - !Ref RestrictUnusedRegionsSCP
+
+  ProductionOU:
+    Type: OC::ORG::OrganizationalUnit
+    Properties:
+      OrganizationalUnitName: production
+      Accounts:
+        - !Ref ProductionAccount
+
+  DevelopmentOU:
+    Type: OC::ORG::OrganizationalUnit
+    Properties:
+      OrganizationalUnitName: development
+      Accounts:
+        - !Ref DevelopmentAccount
+
+  ProductionAccount:
+    Type: OC::ORG::Account
+    Properties:
+      Alias:  financial-data-api-demo-prod
+      AccountName: Production Account
+      # To avoid having to create multiple e-mail addresses you can use an alias such as john.doe+awsprodaccount@gmail.com
+      # and you will still receive the e-mail at your john.doe@gmail.com mailbox
+      RootEmail: john.doe+awsprodaccount@gmail.com
+      PasswordPolicy: !Ref PasswordPolicy
+      Tags:
+        environment: 'prod'
+
+  DevelopmentAccount:
+    Type: OC::ORG::Account
+    Properties:
+      Alias:  financial-data-api-demo-dev
+      AccountName: Development Account
+      # To avoid having to create multiple e-mail addresses you can use an alias such as john.doe+awsdevaccount@gmail.com
+      # and you will still receive the e-mail at your john.doe@gmail.com mailbox
+      RootEmail: john.doe+awsdevaccount@gmail.com
+      PasswordPolicy: !Ref PasswordPolicy
+      Tags:
+        environment: 'dev'
+
+  DenyChangeOfOrgRoleSCP:
+    Type: OC::ORG::ServiceControlPolicy
+    Properties:
+      PolicyName: DenyChangeOfOrgRole
+      Description: Deny changing the IAM role used for organization access
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: DenyChangeOfOrgRole
+            Effect: Deny
+            Action:
+              - 'iam:Attach*'
+              - 'iam:Create*'
+              - 'iam:Delete*'
+              - 'iam:Detach*'
+              - 'iam:PutRole*'
+              - 'iam:Update*'
+            Resource:
+              - 'arn:aws:iam::*:role/OrganizationAccountAccessRole'
+
+  # Enforce using us-east-1 region
+  RestrictUnusedRegionsSCP:
+    Type: OC::ORG::ServiceControlPolicy
+    Properties:
+      PolicyName: RestrictUnusedRegions
+      Description: Restrict Unused regions
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: DenyUnsupportedRegions
+            Effect: Deny
+            NotAction:
+              - 'cloudfront:*'
+              - 'iam:*'
+              - 'route53:*'
+              - 'support:*'
+              - 'budgets:*'
+            Resource: '*'
+            Condition:
+              StringNotEquals:
+                'aws:RequestedRegion':
+                  - us-east-1
+
+  PasswordPolicy:
+    Type: OC::ORG::PasswordPolicy
+    Properties:
+      MaxPasswordAge: 30
+      MinimumPasswordLength: 12
+      RequireLowercaseCharacters: true
+      RequireNumbers: true
+      RequireSymbols: true
+      RequireUppercaseCharacters: true
+      PasswordReusePrevention: 5
+      AllowUsersToChangePassword: true

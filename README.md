@@ -1,4 +1,4 @@
-# financial-data-api &middot; ![ci](https://github.com/teddy-ambona/financial-data-api/actions/workflows/app_code_cicd.yml/badge.svg); ![ci](https://github.com/teddy-ambona/financial-data-api/actions/workflows/infra_code_cicd.yml/badge.svg)
+# financial-data-api &middot; ![ci](https://github.com/teddy-ambona/financial-data-api/actions/workflows/app_code_cicd.yml/badge.svg) ![ci](https://github.com/teddy-ambona/financial-data-api/actions/workflows/infra_code_cicd.yml/badge.svg)
 
 - [1 - Architecture](#1---architecture)
   - [A - App CICD architecture](#a---app-cicd-architecture)
@@ -46,6 +46,7 @@ This repo is a demo project for dockerized flask applications (REST API). This s
 **Infrastructure code:**
 
 - Multi AZ serverless architecture:
+  - AWS Organizations (multi-account strategy for dev & prod) with SCPs
   - VPC, Security-groups
   - RDS DB, S3, Route53, ALB, API Gateway, AWS Private link
   - IAM configuration (RBAC)
@@ -63,11 +64,11 @@ This repo is a demo project for dockerized flask applications (REST API). This s
 
 ### A - App CICD architecture
 
-<img src="./docs/img/app_cicd_architecture.png" width="700"/>
+<img src="./docs/diagrams/app_cicd_architecture.png" width="700"/>
 
 ### B - Cloud architecture (AWS)
 
-<img src="./docs/img/cloud_architecture.png" width="850"/>
+<img src="./docs/diagrams/cloud_architecture.png" width="850"/>
 
 *(image drawn on [Cloudcraft](https://app.cloudcraft.co/))*
 <br></br>
@@ -80,10 +81,12 @@ Basic 3-tier application:
 
 ## 2 - Prerequisites
 
+- [An AWS Account](https://aws.amazon.com/)
 - [Docker](https://docs.docker.com/get-docker/)
 - [Docker Compose CLI plugin](https://docs.docker.com/compose/install/compose-plugin/)
 - If running on windows: [Docker remote containers on WSL 2](https://docs.microsoft.com/en-us/windows/wsl/tutorials/wsl-containers)
 - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
+- [org-formation CLI](https://github.com/org-formation/org-formation-cli#installation)
 - [Terraform CLI](https://www.terraform.io/cli/install/apt)
 - [Terragrunt](https://terragrunt.gruntwork.io/docs/getting-started/install/)
 - [(Optional) Jq](https://stedolan.github.io/jq/download/)
@@ -157,7 +160,7 @@ $ curl -G -d 'interval=1' -d 'frequency=Annual' http://localhost/stocks/time-ser
 
 ### B - Deploy the infrastructure on AWS
 
-A step by step guide to financial-data-api IaC is accessible in [terraform/README.md](terraform/README.md)
+A step by step guide to financial-data-api IaC is accessible in [infrastructure/README.md](infrastructure/README.md)
 
 ## 4 - Project file structure
 
@@ -171,7 +174,7 @@ The best practice is for infrastructure and application code to sit in different
 │   │   └── infra_code_cicd.yml
 ├── app
 ├── docs
-├── terraform
+├── infrastructure
 ├── .gitignore
 ├── Makefile
 ├── README.md
@@ -226,28 +229,36 @@ In [./app](./app)
 ├── requirements.txt
 ```
 
-In [./terraform](./terraform)
+In [./infrastructure](./infrastructure)
 
 ```text
 .
-├── live
-│   ├── _envcommon
-│   │   └── <resource>.hcl
-│   ├── global
-│   │   ├── s3
-│   │   └── iam
-│   ├── <environment>
-│   │   ├── env.hcl
-│   │   └── <resource>
-│   │       ├── main.tf
-│   │       ├── README.md
-│   │       └── terragrunt.hcl
-│   ├── .tflint.hcl
-│   └── infracost.yml
-├── modules
+├── aws-organizations
+│   ├── templates
+│   │   ├── dynamodb.yml
+│   │   └── s3.yml
+│   ├── organization-tasks.yml
+│   └── organization.yml
+├── terraform
+│   ├── live
+│   │   ├── _envcommon
+│   │   │   └── <resource>.hcl
+│   │   ├── <environment>
+│   │   │   ├── env.hcl
+│   │   │   └── <resource>
+│   │   │       ├── main.tf
+│   │   │       ├── README.md
+│   │   │       └── terragrunt.hcl
+│   │   ├── .tflint.hcl
+|   │   └── infracost.yml
+|   └── modules
 ├── Makefile
 └── README.md
 ```
+
+`aws-organizations` is the directory that contains the account baseline and `terraform` is used to define workload.
+
+Account baseline contains resources which aren’t directly related to the workload but help with risk reduction, security, compliance and bootstrapping. A baseline may include cross account CloudTrail logging, GuardDuty detectors and similar services. On the other hand a workload is a collection of resources and code that delivers business value, such as a customer-facing application or a backend process.
 
  `<resource>` can be "vpc" or "security-groups" for instance.
 
@@ -294,10 +305,10 @@ Example of infracost automated PR comment:
 
 One best practice is to always deploy from a single branch to avoid conflicting deployments.
 
-You can automatically generate the terragrunt [README.md](terraform/live/global/s3/README.md) files using this:
+You can automatically generate the terragrunt [README.md](infrastructure/terraform/live/dev/s3/README.md) files using this:
 
 ```bash
-cd terraform && make terraform-docs DIR_PATH=live/global/s3/README.md
+cd infrastructure && make terraform-docs DIR_PATH=live/dev/s3/README.md
 ```
 
 ### C - Running the CICD pipeline locally
@@ -367,7 +378,7 @@ Each PR should contain a new version of the `APP_IMAGE_VERSION` and `NGINX_IMAGE
 
 ### B - [Four-Phase Test](http://xunitpatterns.com/Four%20Phase%20Test.html) (Gerard Meszaros)
 
-<img src="./docs/img/four-phase-test.png" width="700"/>
+<img src="./docs/diagrams/four-phase-test.png" width="700"/>
 
 *(image from [Four-Phase Test](http://xunitpatterns.com/Four%20Phase%20Test.html))*
 <br></br>
@@ -451,7 +462,7 @@ If you still struggle to understand what Nginx can achieve, check out this [repo
 
 Here’s a diagram illustrating how Nginx fits into a Flask web application:
 
-<img src="./docs/img/gunicorn_nginx_architecture.png" width="700"/>
+<img src="./docs/diagrams/gunicorn_nginx_architecture.png" width="700"/>
 
 *(image from [How to Configure NGINX for a Flask Web Application](https://www.patricksoftwareblog.com/how-to-configure-nginx-for-a-flask-web-application/))*
 <br></br>
@@ -508,12 +519,15 @@ A good architecture design can be facilitated by following these [AWS General de
 - Drive architectures using data
 - Improve through game days
 
+The DevOps checklist:
+
+<img src="./docs/img/production_grade_infrastructure_gruntwork.png" width="800"/>
+
 ## 10 - Improvements
 
 Taking a Flask app from development to production is a demanding but rewarding process. There are a couple of areas that I have omitted but would need to be addressed in a real production environment such as:
 
 - Use [AWS Private Links](https://aws.amazon.com/privatelink/) for private connectivity between AWS resources
-- Automatically rotate the DB password with AWS Secrets Manager and AWS Lambda
 - User management and authentication for the backend API ([AWS Cognito](https://aws.amazon.com/cognito/))
 - Adding monitoring/tracing tools (with Prometheus and Grafana for instance)
 - Protection from common web exploits ([Web Application Firewall](https://aws.amazon.com/marketplace/solutions/security/web-application-firewall))
@@ -521,10 +535,14 @@ Taking a Flask app from development to production is a demanding but rewarding p
 - VPC interface endpoints to avoid exposing data to the internet ([AWS PrivateLink](https://aws.amazon.com/privatelink/))
 - ML powered anomaly detection in VPC flow logs / Cloudtrail logs / DNS logs / EKS audit logs ([Amazon Guard Duty](https://aws.amazon.com/guardduty/))
 - [Storage autoscaling for the RDS DB](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_PIOPS.StorageTypes.html#USER_PIOPS.Autoscaling)
+- Automatically rotate the DB password with AWS Secrets Manager and AWS Lambda
+- AWS Control Tower (overkill for this demo, cf [reddit thread](https://www.reddit.com/r/aws/comments/u6kl39/aws_control_tower_yea_or_nay/))
 
 ## 11 - Useful resources
 
+- [Amazon Web Services In Plain English](https://expeditedsecurity.com/aws-in-plain-english/)
 - [Docker Best Practices for Python Developers](https://testdriven.io/blog/docker-best-practices/)
 - [How Amazon ECS manages CPU and memory resources](https://aws.amazon.com/blogs/containers/how-amazon-ecs-manages-cpu-and-memory-resources/)
 - [Getting Out of Tricky Terraform Situations](https://spin.atomicobject.com/2021/03/01/terraform-troubleshooting/)
 - [Testing IAM policies with the IAM policy simulator](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_testing-policies.html)
+- [Mastering AWS Organizations with Infrastructure-As-Code](https://www.youtube.com/watch?v=mLAGHzidHJ0)

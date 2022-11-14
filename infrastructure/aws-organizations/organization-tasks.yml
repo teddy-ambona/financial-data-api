@@ -1,0 +1,29 @@
+# Documentation on how to write this task-file:
+# https://github.com/org-formation/org-formation-cli/blob/master/docs/task-files.md
+
+OrganizationUpdate:
+  Type: update-organization
+  Template: ./organization.yml
+
+# Create S3 bucket in all accounts except the master account
+S3Bucket:
+  Type: update-stacks
+  Template: ./templates/s3.yml
+  StackName: s3
+  MaxConcurrentStacks: 10
+  FailedStackTolerance: 10
+  DefaultOrganizationBindingRegion: us-east-1
+  DefaultOrganizationBinding:
+    IncludeMasterAccount: false
+
+# Create Dynamo DB in all accounts except the master account
+DynamoDB:
+  Type: update-stacks
+  Template: ./templates/dynamodb.yml
+  StackName: dynamodb
+  MaxConcurrentStacks: 10
+  FailedStackTolerance: 10
+  DefaultOrganizationBindingRegion: us-east-1
+  DefaultOrganizationBinding:
+    IncludeMasterAccount: false
+
