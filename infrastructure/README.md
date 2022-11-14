@@ -37,7 +37,7 @@ For minimizing the costs in this demo I personally recommend using `us-east-1` r
 
 ## 1 - Environments segmentation
 
-In this hands-on we leverage AWS Organization and segment environments(dev/stage/prod) using separate accounts. Also, each module has its own `terraform.state` file stored in s3, this is a best practice set to limit damages in case in errors. Also, the user who is running the terraform code does not need permission for the entire infrastructure but only for the resources he is trying to update.
+In this hands-on we leverage AWS Organization and segment environments(dev/prod) using separate accounts. Also, each module has its own `terraform.state` file stored in s3, this is a best practice set to limit damages in case in errors. Also, the user who is running the terraform code does not need permission for the entire infrastructure but only for the resources he is trying to update.
 
 The below file structure will be created in s3:
 
